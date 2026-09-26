@@ -19,6 +19,23 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 ORIGINS = ["*"]  # gelistirme icin acik; production'da kendi domain(ler)inle degistir
 
+# Kur'an'daki 114 surenin sirasiyla isimleri ("Suresi" eki olmadan).
+SURE_ISIMLERI = [
+    "", "Fâtiha", "Bakara", "Âl-i İmrân", "Nisâ", "Mâide", "En'âm", "A'râf", "Enfâl",
+    "Tevbe", "Yunus", "Hûd", "Yusuf", "Ra'd", "İbrahim", "Hicr", "Nahl", "İsrâ", "Kehf",
+    "Meryem", "Tâ-Hâ", "Enbiyâ", "Hac", "Mü'minûn", "Nûr", "Furkan", "Şuarâ", "Neml",
+    "Kasas", "Ankebût", "Rûm", "Lokman", "Secde", "Ahzâb", "Sebe'", "Fâtır", "Yâsin",
+    "Sâffât", "Sâd", "Zümer", "Mü'min", "Fussilet", "Şûrâ", "Zuhruf", "Duhân", "Câsiye",
+    "Ahkaf", "Muhammed", "Fetih", "Hucurât", "Kaf", "Zâriyât", "Tûr", "Necm", "Kamer",
+    "Rahmân", "Vâkıa", "Hadid", "Mücâdele", "Haşr", "Mümtehine", "Saf", "Cum'a",
+    "Münâfikûn", "Teğabün", "Talâk", "Tahrim", "Mülk", "Kalem", "Hâkka", "Meâric", "Nuh",
+    "Cin", "Müzzemmil", "Müddessir", "Kıyamet", "İnsan", "Mürselât", "Nebe'", "Nâziât",
+    "Abese", "Tekvir", "İnfitâr", "Mutaffifin", "İnşikak", "Bürûc", "Târık", "A'lâ",
+    "Gâşiye", "Fecr", "Beled", "Şems", "Leyl", "Duhâ", "İnşirâh", "Tin", "Alak", "Kadir",
+    "Beyyine", "Zilzâl", "Âdiyât", "Kâria", "Tekâsür", "Asr", "Hümeze", "Fil", "Kureyş",
+    "Mâûn", "Kevser", "Kâfirûn", "Nasr", "Tebbet", "İhlâs", "Felâk", "Nâs",
+]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -180,7 +197,7 @@ async def ana_sayfa():
             height: calc(100vh - 106px);
             z-index: 999;
             display: flex;
-            transform: translateX(-260px);
+            transform: translateX(-310px);
             transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -190,7 +207,7 @@ async def ana_sayfa():
         }
 
         .sidebar-drawer {
-            width: 260px;
+            width: 310px;
             height: 100%;
             background: #ffffff;
             border-right: 1px solid var(--border);
@@ -233,11 +250,13 @@ async def ana_sayfa():
 
         .sure-list-item {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
+            gap: 6px;
             transition: background 0.15s;
         }
 
@@ -249,6 +268,38 @@ async def ana_sayfa():
             background: var(--primary-light);
             color: #92400e;
             font-weight: 600;
+        }
+
+        .sure-isim-alani {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sure-ayet-input {
+            width: 44px;
+            padding: 2px 4px;
+            font-size: 11px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            outline: none;
+            background: #ffffff;
+            color: var(--text-dark);
+        }
+
+        .sure-ayet-input:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .sure-ayet-sayisi {
+            color: var(--text-muted);
+            font-size: 11px;
+            white-space: nowrap;
+            min-width: 48px;
+            text-align: right;
         }
 
         /* 2. Masaüstü Yerleşimi: Yan Yana */
@@ -359,6 +410,167 @@ async def ana_sayfa():
             padding-bottom: 6px;
         }
 
+        .mufredat-header.tiklanabilir {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .mufredat-header.tiklanabilir:hover {
+            color: #92400e;
+            text-decoration: underline;
+        }
+
+        .mufredat-header .kok-ipucu {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .kok-vurgulu {
+            background-color: #fef08a !important;
+            color: #dc2626 !important;
+            padding: 1px 5px !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+        }
+
+        /* Kok modal */
+        .kok-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .kok-modal-backdrop.acik {
+            display: flex;
+        }
+
+        .kok-modal {
+            background: #ffffff;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 440px;
+            max-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .kok-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .kok-modal-header h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .kok-modal-kapat {
+            background: none;
+            border: none;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+        }
+
+        .kok-modal-kapat:hover {
+            color: var(--text-dark);
+        }
+
+        .kok-modal-body {
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .kok-ayet-item {
+            padding: 12px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s;
+        }
+
+        .kok-ayet-item:last-child {
+            border-bottom: none;
+        }
+
+        .kok-ayet-item:hover {
+            background: #f8fafc;
+        }
+
+        .kok-ayet-ust {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .kok-ayet-badge {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .adet-badge {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: #f3f4f6;
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+
+        .kok-ayet-metin {
+            font-family: 'Amiri', serif;
+            font-size: 19px;
+            line-height: 1.8;
+            direction: rtl;
+            text-align: right;
+            color: #374151;
+        }
+
+        .kok-daha-fazla {
+            display: block;
+            width: calc(100% - 16px);
+            margin: 8px;
+            padding: 10px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .kok-daha-fazla:hover {
+            background: #e5e7eb;
+        }
+
+        .kok-modal-durum {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
         .mufredat-body {
             font-size: 14px;
             line-height: 1.7;
@@ -420,17 +632,13 @@ async def ana_sayfa():
             font-size: 13px;
         }
 
-        /* ============================================================
-           MOBİL UYUMLULUK (@media max-width: 768px)
-           Üstte Ayetler, Altta Müfredat Paneli
-        ============================================================ */
+        /* Mobil Düzen */
         @media (max-width: 768px) {
             main {
                 flex-direction: column;
-                margin-left: 0; /* Mobilde tam genişlik */
+                margin-left: 0;
             }
 
-            /* Üst Bölüm: Ayetler */
             .panel-ayetler {
                 width: 100%;
                 height: 55%;
@@ -445,7 +653,6 @@ async def ana_sayfa():
                 gap: 8px;
             }
 
-            /* Alt Bölüm: Müfredat Kök Açıklaması */
             .panel-mufredat {
                 width: 100%;
                 height: 45%;
@@ -471,10 +678,10 @@ async def ana_sayfa():
                 line-height: 1.6;
             }
 
-            /* Mobilde sol çekmece menü kulakçığı */
             .drawer-container {
                 top: 56px;
                 height: calc(100vh - 106px);
+                transform: translateX(-310px);
             }
 
             .drawer-tab {
@@ -504,7 +711,7 @@ async def ana_sayfa():
         </div>
     </header>
 
-    <!-- Sol Menü: Kulakçık ve Drawer (Mobilde dokununca açılıp kapanabilir) -->
+    <!-- Sol Menü: Kulakçık ve Drawer -->
     <div id="drawer-container" class="drawer-container">
         <div id="sidebar-drawer" class="sidebar-drawer">
             <h3>Sûreler</h3>
@@ -513,23 +720,34 @@ async def ana_sayfa():
         <div class="drawer-tab" onclick="toggleDrawer()">☰ SÛRELER</div>
     </div>
 
-    <!-- İki Bölmeli Ana Alan (Mobilde Üst: Ayetler, Alt: Müfredat) -->
+    <!-- İki Bölmeli Ana Alan -->
     <main>
-        <!-- ÜST PANEL (Mobilde): Ayetler -->
+        <!-- SOL/ÜST PANEL: Ayetler -->
         <section class="panel-ayetler" id="panel-ayetler">
             <div id="ayetler-container">Yükleniyor...</div>
         </section>
 
-        <!-- ALT PANEL (Mobilde): Müfredat -->
+        <!-- SAĞ/ALT PANEL: Müfredat -->
         <section class="panel-mufredat" id="panel-mufredat">
             <div class="mufredat-card">
                 <div id="mufredat-title" class="mufredat-header">Müfredat</div>
                 <div id="mufredat-desc" class="mufredat-body">
-                    İncelemek istediğiniz kelimenin kök anlamını görmek için yukarıdaki ayetlerden bir kelimeye dokunun.
+                    İncelemek istediğiniz kelimenin kök anlamını görmek için ayetlerden bir kelimeye gelin/dokunun.
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- Kökün geçtiği sûreler modalı -->
+    <div id="kok-modal-backdrop" class="kok-modal-backdrop" onclick="if(event.target===this) kapatKokModal()">
+        <div class="kok-modal">
+            <div class="kok-modal-header">
+                <h4 id="kok-modal-baslik">Kök</h4>
+                <button class="kok-modal-kapat" onclick="kapatKokModal()" aria-label="Kapat">&times;</button>
+            </div>
+            <div id="kok-modal-body" class="kok-modal-body"></div>
+        </div>
+    </div>
 
     <!-- Footer: Ayete Atlama -->
     <footer>
@@ -573,18 +791,70 @@ async def ana_sayfa():
             tumSureler.forEach(s => {
                 const item = document.createElement('div');
                 item.className = 'sure-list-item' + (s.sure_no === mevcutSureNo ? ' active' : '');
-                item.innerHTML = `<span>${s.sure_no}. Sûre</span><span style="color:var(--text-muted); font-size:12px;">${s.ayet_sayisi} Ayet</span>`;
+                
+                // Sure Adi
+                const isimSpan = document.createElement('span');
+                isimSpan.className = 'sure-isim-alani';
+                isimSpan.textContent = `${s.sure_no}. ${s.sure_adi || ''}`;
+
+                // Ayet Numarasi Kutusu
+                const inputAyet = document.createElement('input');
+                inputAyet.type = 'number';
+                inputAyet.min = '1';
+                inputAyet.max = String(s.ayet_sayisi);
+                inputAyet.placeholder = 'Ayet';
+                inputAyet.className = 'sure-ayet-input';
+
+                // Kutuya tiklaninca satir tiklamasini onle
+                inputAyet.addEventListener('click', (e) => e.stopPropagation());
+
+                // Enter'a basinca ilgili sure ve ayete git
+                inputAyet.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const ayetNo = parseInt(inputAyet.value);
+                        if (ayetNo && ayetNo >= 1 && ayetNo <= s.ayet_sayisi) {
+                            sureVeAyeteGit(s.sure_no, ayetNo);
+                            document.getElementById('drawer-container').classList.remove('open');
+                        } else {
+                            alert(`Lütfen 1 ile ${s.ayet_sayisi} arasında geçerli bir ayet numarası girin.`);
+                        }
+                    }
+                });
+
+                // Ayet Sayisi
+                const adetSpan = document.createElement('span');
+                adetSpan.className = 'sure-ayet-sayisi';
+                adetSpan.textContent = `${s.ayet_sayisi} Ayet`;
+
+                item.appendChild(isimSpan);
+                item.appendChild(inputAyet);
+                item.appendChild(adetSpan);
+
                 item.onclick = () => {
                     degistirSure(s.sure_no);
                     document.getElementById('drawer-container').classList.remove('open');
                 };
+
                 container.appendChild(item);
             });
         }
 
+        async function sureVeAyeteGit(sureNo, ayetNo) {
+            if (sureNo !== mevcutSureNo) {
+                await yukleSure(sureNo);
+                requestAnimationFrame(() => vurgulaVeGit(ayetNo));
+            } else {
+                vurgulaVeGit(ayetNo);
+            }
+        }
+
         async function yukleSure(sureNo) {
             mevcutSureNo = sureNo;
-            document.getElementById('header-sure-title').textContent = `${sureNo}. Sûre`;
+            const sureBilgisi = tumSureler.find(s => s.sure_no === sureNo);
+            document.getElementById('header-sure-title').textContent =
+                sureBilgisi ? `${sureNo}. ${sureBilgisi.sure_adi}` : `${sureNo}. Sûre`;
             
             document.getElementById('prev-btn').disabled = sureNo <= 1;
             document.getElementById('next-btn').disabled = tumSureler.length > 0 && sureNo >= tumSureler.length;
@@ -621,7 +891,9 @@ async def ana_sayfa():
 
                 const title = document.createElement('div');
                 title.className = 'ayet-title';
-                title.textContent = `${ayet.sure_no}. Sûre, ${ayet.ayet_no}. Ayet`;
+                const sureBilgisiK = tumSureler.find(s => s.sure_no === ayet.sure_no);
+                const sureAdiK = sureBilgisiK ? sureBilgisiK.sure_adi : 'Sûre';
+                title.textContent = `${ayet.sure_no}. ${sureAdiK}, ${ayet.ayet_no}. Ayet`;
 
                 const divider = document.createElement('div');
                 divider.className = 'ayet-divider';
@@ -635,9 +907,7 @@ async def ana_sayfa():
                     span.textContent = k.kelime_metni;
 
                     if (k.kok_id) {
-                        // Masaüstünde fareyle gelince
                         span.addEventListener('mouseenter', () => gosterMufredat(k.kelime_id, span));
-                        // Mobilde dokununca (click/touch)
                         span.addEventListener('click', (e) => {
                             e.stopPropagation();
                             gosterMufredat(k.kelime_id, span);
@@ -704,31 +974,154 @@ async def ana_sayfa():
 
             const data = cache[kelimeId];
             if (data.kok) {
-                titleEl.textContent = data.kok.baslik || 'Kök Bilgisi';
+                titleEl.innerHTML = `<span>${data.kok.baslik || 'Kök Bilgisi'}</span><span class="kok-ipucu">Geçtiği ayetler ›</span>`;
+                titleEl.classList.add('tiklanabilir');
+                titleEl.dataset.kokId = data.kok.kok_id;
                 descEl.innerHTML = data.kok.aciklama || 'Açıklama bulunamadı.';
             } else {
                 titleEl.textContent = 'Müfredat';
+                titleEl.classList.remove('tiklanabilir');
+                delete titleEl.dataset.kokId;
                 descEl.innerHTML = 'Bu kelime için kayıtlı kök açıklaması bulunmuyor.';
             }
         }
+
+        document.getElementById('mufredat-title').addEventListener('click', (e) => {
+            const kokId = e.currentTarget.dataset.kokId;
+            if (kokId) gosterKokAyetleri(kokId, 0);
+        });
+
+        let onizlemeOncesiBaslik = '';
+        let onizlemeOncesiAciklama = '';
+
+        function renderAyetHtmlVurgulu(ayetMetni, vurguluKelimeler) {
+            const tokens = ayetMetni.split(/\\s+/);
+            const vurguSeti = new Set(vurguluKelimeler || []);
+            return tokens.map(tok => {
+                if (vurguSeti.has(tok)) {
+                    return `<span class="kok-vurgulu">${tok}</span>`;
+                }
+                return tok;
+            }).join(' ');
+        }
+
+        async function gosterKokAyetleri(kokId, offsetParam) {
+            const backdrop = document.getElementById('kok-modal-backdrop');
+            const body = document.getElementById('kok-modal-body');
+            const baslikEl = document.getElementById('kok-modal-baslik');
+            const titleEl = document.getElementById('mufredat-title');
+            const descEl = document.getElementById('mufredat-desc');
+
+            if (offsetParam === 0) {
+                onizlemeOncesiBaslik = titleEl.innerHTML;
+                onizlemeOncesiAciklama = descEl.innerHTML;
+
+                const kokAdi = titleEl.querySelector('span') ? titleEl.querySelector('span').textContent : 'Kök';
+                baslikEl.textContent = `${kokAdi} — geçtiği ayetler`;
+                backdrop.classList.add('acik');
+                body.innerHTML = '<div class="kok-modal-durum">Yükleniyor...</div>';
+            }
+
+            try {
+                const res = await fetch(`/kok/${kokId}/ayetler?limit=100&offset=${offsetParam}`);
+                if (!res.ok) throw new Error('İstek başarısız');
+                const veri = await res.json();
+
+                if (offsetParam === 0) {
+                    body.innerHTML = '';
+                    if (!veri.ayetler.length) {
+                        body.innerHTML = '<div class="kok-modal-durum">Bu kök için ayet bulunamadı.</div>';
+                        return;
+                    }
+                } else {
+                    const eskiButon = body.querySelector('.kok-daha-fazla');
+                    if (eskiButon) eskiButon.remove();
+                }
+
+                veri.ayetler.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'kok-ayet-item';
+
+                    const sureAdi = item.sure_adi ? `${item.sure_no}. ${item.sure_adi}` : `${item.sure_no}. Sûre`;
+                    const vurguluHtml = renderAyetHtmlVurgulu(item.ayet_metni, item.vurgulu_kelimeler);
+
+                    const ust = document.createElement('div');
+                    ust.className = 'kok-ayet-ust';
+                    ust.innerHTML = `<span class="kok-ayet-badge">${sureAdi}, ${item.ayet_no}. Ayet</span>` +
+                        (item.adet > 1 ? `<span class="adet-badge">${item.adet} kez</span>` : '');
+
+                    const metin = document.createElement('div');
+                    metin.className = 'kok-ayet-metin';
+                    metin.innerHTML = vurguluHtml;
+
+                    row.appendChild(ust);
+                    row.appendChild(metin);
+
+                    row.addEventListener('mouseenter', () => {
+                        titleEl.innerHTML = `<span>${sureAdi}, ${item.ayet_no}. Ayet</span><span class="kok-ipucu">‹ kök açıklaması</span>`;
+                        titleEl.classList.remove('tiklanabilir');
+                        descEl.innerHTML = `<div class="arabic-row" style="font-size:24px; line-height:2.2; justify-content:center;">${vurguluHtml}</div>`;
+                    });
+                    row.addEventListener('mouseleave', () => {
+                        titleEl.innerHTML = onizlemeOncesiBaslik;
+                        titleEl.classList.add('tiklanabilir');
+                        descEl.innerHTML = onizlemeOncesiAciklama;
+                    });
+
+                    row.addEventListener('click', () => kokAyetineGit(item.sure_no, item.ayet_no));
+
+                    body.appendChild(row);
+                });
+
+                if (veri.offset + veri.ayetler.length < veri.toplam) {
+                    const buton = document.createElement('button');
+                    buton.className = 'kok-daha-fazla';
+                    buton.textContent = `Daha fazla göster (${veri.offset + veri.ayetler.length} / ${veri.toplam})`;
+                    buton.onclick = () => gosterKokAyetleri(kokId, veri.offset + veri.ayetler.length);
+                    body.appendChild(buton);
+                }
+            } catch (err) {
+                body.innerHTML = '<div class="kok-modal-durum" style="color:red;">Ayet listesi alınamadı.</div>';
+            }
+        }
+
+        function kapatKokModal() {
+            document.getElementById('kok-modal-backdrop').classList.remove('acik');
+            if (onizlemeOncesiBaslik) {
+                document.getElementById('mufredat-title').innerHTML = onizlemeOncesiBaslik;
+                document.getElementById('mufredat-title').classList.add('tiklanabilir');
+                document.getElementById('mufredat-desc').innerHTML = onizlemeOncesiAciklama;
+            }
+        }
+
+        function vurgulaVeGit(ayetNo) {
+            const ayetEl = document.getElementById(`ayet-${ayetNo}`);
+            if (!ayetEl) return false;
+            isUserScrolling = false;
+            ayetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            ayetEl.style.transition = 'background-color 0.5s';
+            ayetEl.style.backgroundColor = '#fef9c3';
+            setTimeout(() => {
+                ayetEl.style.backgroundColor = 'transparent';
+                isUserScrolling = true;
+            }, 1000);
+            return true;
+        }
+
+        async function kokAyetineGit(sureNo, ayetNo) {
+            kapatKokModal();
+            sureVeAyeteGit(sureNo, ayetNo);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') kapatKokModal();
+        });
 
         function handleGotoAyet(event) {
             event.preventDefault();
             const input = document.getElementById('ayet-input');
             const targetAyet = input.value;
-            const ayetEl = document.getElementById(`ayet-${targetAyet}`);
-
-            if (ayetEl) {
-                isUserScrolling = false;
-                ayetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                
-                ayetEl.style.transition = 'background-color 0.5s';
-                ayetEl.style.backgroundColor = '#fef9c3';
-                setTimeout(() => {
-                    ayetEl.style.backgroundColor = 'transparent';
-                    isUserScrolling = true;
-                }, 1000);
-            } else {
+            if (!vurgulaVeGit(targetAyet)) {
                 alert(`${targetAyet}. ayet bulunamadı.`);
             }
         }
@@ -748,7 +1141,14 @@ async def sure_listesi():
             "SELECT sure_no, COUNT(*) AS ayet_sayisi "
             "FROM ayetler GROUP BY sure_no ORDER BY sure_no"
         )
-        return [{"sure_no": r["sure_no"], "ayet_sayisi": r["ayet_sayisi"]} for r in rows]
+        return [
+            {
+                "sure_no": r["sure_no"],
+                "sure_adi": SURE_ISIMLERI[r["sure_no"]] if r["sure_no"] < len(SURE_ISIMLERI) else "",
+                "ayet_sayisi": r["ayet_sayisi"],
+            }
+            for r in rows
+        ]
 
 
 @app.get("/sure/{sure_no}", response_model=list[Ayet])
@@ -869,3 +1269,51 @@ async def kok_anlami(kok_id: int):
         if not row:
             raise HTTPException(status_code=404, detail="Kok bulunamadi")
         return KokAnlami(kok_id=row["kok_id"], baslik=row["baslik"], aciklama=row["aciklama"])
+
+
+@app.get("/kok/{kok_id}/ayetler")
+async def kok_gectigi_ayetler(kok_id: int, limit: int = 100, offset: int = 0):
+    """
+    Bir kokun Kur'an'da hangi ayetlerde (sure_no, sure_adi, ayet_no, ayet metni),
+    kacar kez gectigini ve vurgulanacak kelimeleri doner.
+    """
+    limit = max(1, min(limit, 500))
+    offset = max(0, offset)
+
+    async with _pool(app).acquire() as conn:
+        kok_row = await conn.fetchrow("SELECT kok_id FROM kokler WHERE kok_id = $1", kok_id)
+        if not kok_row:
+            raise HTTPException(status_code=404, detail="Kok bulunamadi")
+
+        rows = await conn.fetch(
+            """
+            SELECT a.sure_no, a.ayet_no, a.ayet_metni, COUNT(*) AS adet,
+                   ARRAY_AGG(k.kelime_metni) AS vurgulu_kelimeler,
+                   COUNT(*) OVER() AS toplam_ayet_sayisi
+            FROM kelimeler k
+            JOIN ayetler a ON a.sure_no = k.sure_no AND a.ayet_no = k.ayet_no
+            WHERE k.kok_id = $1
+            GROUP BY a.sure_no, a.ayet_no, a.ayet_metni
+            ORDER BY a.sure_no, a.ayet_no
+            LIMIT $2 OFFSET $3
+            """,
+            kok_id, limit, offset,
+        )
+
+        toplam = rows[0]["toplam_ayet_sayisi"] if rows else 0
+        return {
+            "toplam": toplam,
+            "limit": limit,
+            "offset": offset,
+            "ayetler": [
+                {
+                    "sure_no": r["sure_no"],
+                    "sure_adi": SURE_ISIMLERI[r["sure_no"]] if r["sure_no"] < len(SURE_ISIMLERI) else "",
+                    "ayet_no": r["ayet_no"],
+                    "ayet_metni": r["ayet_metni"],
+                    "vurgulu_kelimeler": list(r["vurgulu_kelimeler"]) if r["vurgulu_kelimeler"] else [],
+                    "adet": r["adet"],
+                }
+                for r in rows
+            ],
+        }
