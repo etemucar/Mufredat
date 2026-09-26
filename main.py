@@ -77,13 +77,13 @@ def _pool(app: FastAPI):
 
 @app.get("/", response_class=HTMLResponse)
 async def ana_sayfa():
-    """Solda ayetler, sağda Müfredat, merkezde şık navigasyonlu header arayüzü."""
+    """Masaüstü ve mobil uyumlu Kur'an & Müfredat arayüzü."""
     return """
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kur'an-ı Kerim & Müfredat</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -109,34 +109,34 @@ async def ana_sayfa():
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            direction: ltr; /* Sayfa bütününde LTR düzen garantiye alınır */
+            direction: ltr;
         }
 
         /* 1. Header */
         header {
-            height: 60px;
+            height: 56px;
             background: #ffffff;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 24px;
+            padding: 0 16px;
             z-index: 10;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            position: relative;
+            flex-shrink: 0;
         }
 
         .header-nav-group {
             display: inline-flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
 
         .header-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--text-dark);
-            min-width: 140px;
+            min-width: 120px;
             text-align: center;
         }
 
@@ -144,8 +144,8 @@ async def ana_sayfa():
             background: #ffffff;
             border: 1px solid var(--border);
             border-radius: 50%;
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -159,34 +159,33 @@ async def ana_sayfa():
             background: #f8fafc;
             border-color: var(--primary);
             color: var(--primary);
-            transform: scale(1.05);
         }
 
         .nav-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
-            transform: none;
         }
 
         .nav-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             stroke-width: 2.2;
         }
 
-        /* Sol Kenar Sure Menüsü: Kulakçık ve Drawer */
+        /* Sol Menü: Kulakçık ve Drawer */
         .drawer-container {
             position: fixed;
-            top: 60px;
+            top: 56px;
             left: 0;
-            height: calc(100vh - 110px);
+            height: calc(100vh - 106px);
             z-index: 999;
             display: flex;
             transform: translateX(-260px);
             transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .drawer-container:hover {
+        .drawer-container:hover,
+        .drawer-container.open {
             transform: translateX(0);
         }
 
@@ -201,8 +200,8 @@ async def ana_sayfa():
         }
 
         .drawer-tab {
-            width: 36px;
-            height: 120px;
+            width: 32px;
+            height: 100px;
             background: #ffffff;
             border: 1px solid var(--border);
             border-left: none;
@@ -212,10 +211,10 @@ async def ana_sayfa():
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            margin-top: 30px;
+            margin-top: 20px;
             writing-mode: vertical-rl;
             text-orientation: mixed;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: var(--primary);
             letter-spacing: 1px;
@@ -223,7 +222,7 @@ async def ana_sayfa():
         }
 
         .sidebar-drawer h3 {
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
@@ -252,69 +251,68 @@ async def ana_sayfa():
             font-weight: 600;
         }
 
-        /* 2. Ana Çalışma Alanı */
+        /* 2. Masaüstü Yerleşimi: Yan Yana */
         main {
             flex: 1;
             display: flex;
-            height: calc(100vh - 110px);
+            height: calc(100vh - 106px);
             overflow: hidden;
-            margin-left: 36px;
+            margin-left: 32px;
         }
 
-        /* SOL PANEL: Kur'an Ayetleri */
         .panel-ayetler {
             width: 58%;
-            padding: 32px 48px;
+            padding: 24px 36px;
             overflow-y: auto;
             background: #ffffff;
             border-right: 1px solid var(--border);
         }
 
         .ayet-card {
-            margin-bottom: 40px;
+            margin-bottom: 32px;
             text-align: center;
-            scroll-margin-top: 24px;
+            scroll-margin-top: 20px;
         }
 
         .ayet-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-muted);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .ayet-divider {
             height: 1px;
             background-color: #f3f4f6;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .arabic-row {
-            direction: rtl; /* Sadece Arapça yazının akışı RTL kalır */
+            direction: rtl;
             font-family: 'Amiri', serif;
-            font-size: 34px;
-            line-height: 2.3;
+            font-size: 32px;
+            line-height: 2.2;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
         }
 
         .ayet-num-badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             background: var(--primary);
             color: white;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             border-radius: 50%;
             font-family: 'Inter', sans-serif;
             user-select: none;
-            margin-right: 8px;
+            margin-right: 6px;
         }
 
         .kelime-token {
@@ -323,6 +321,7 @@ async def ana_sayfa():
             padding: 2px 6px;
             border-radius: 6px;
             transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .kelime-token.has-kok {
@@ -335,45 +334,44 @@ async def ana_sayfa():
             color: #92400e;
         }
 
-        /* SAĞ PANEL: Müfredat Kök Açıklaması */
         .panel-mufredat {
             width: 42%;
             background: #fafafa;
-            padding: 28px;
+            padding: 24px;
             overflow-y: auto;
         }
 
         .mufredat-card {
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 24px;
+            padding: 20px;
             background: #ffffff;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            min-height: 220px;
+            min-height: 180px;
         }
 
         .mufredat-header {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
 
         .mufredat-body {
             font-size: 14px;
-            line-height: 1.8;
+            line-height: 1.7;
             color: #374151;
         }
 
         .mufredat-body p {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .mufredat-body .arabi {
             font-family: 'Amiri', serif;
-            font-size: 20px;
+            font-size: 19px;
             direction: rtl;
             unicode-bidi: isolate;
             color: #111827;
@@ -390,8 +388,9 @@ async def ana_sayfa():
             align-items: center;
             justify-content: center;
             gap: 12px;
-            padding: 0 20px;
+            padding: 0 16px;
             z-index: 10;
+            flex-shrink: 0;
         }
 
         .goto-form {
@@ -411,10 +410,6 @@ async def ana_sayfa():
             outline: none;
         }
 
-        .goto-input:focus {
-            border-color: var(--primary);
-        }
-
         .goto-btn {
             background: var(--primary);
             color: white;
@@ -423,17 +418,76 @@ async def ana_sayfa():
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
-            transition: opacity 0.2s;
         }
 
-        .goto-btn:hover {
-            opacity: 0.9;
+        /* ============================================================
+           MOBİL UYUMLULUK (@media max-width: 768px)
+           Üstte Ayetler, Altta Müfredat Paneli
+        ============================================================ */
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column;
+                margin-left: 0; /* Mobilde tam genişlik */
+            }
+
+            /* Üst Bölüm: Ayetler */
+            .panel-ayetler {
+                width: 100%;
+                height: 55%;
+                padding: 16px 20px;
+                border-right: none;
+                border-bottom: 2px solid var(--border);
+            }
+
+            .arabic-row {
+                font-size: 26px;
+                line-height: 2.1;
+                gap: 8px;
+            }
+
+            /* Alt Bölüm: Müfredat Kök Açıklaması */
+            .panel-mufredat {
+                width: 100%;
+                height: 45%;
+                padding: 14px 16px;
+                background: #ffffff;
+            }
+
+            .mufredat-card {
+                padding: 14px;
+                min-height: auto;
+                height: 100%;
+                overflow-y: auto;
+                border: 1px solid #e2e8f0;
+            }
+
+            .mufredat-header {
+                font-size: 15px;
+                margin-bottom: 8px;
+            }
+
+            .mufredat-body {
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            /* Mobilde sol çekmece menü kulakçığı */
+            .drawer-container {
+                top: 56px;
+                height: calc(100vh - 106px);
+            }
+
+            .drawer-tab {
+                width: 26px;
+                height: 80px;
+                font-size: 10px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header: Şık ok ikonları ve ortalanmış başlık grubu -->
+    <!-- Header -->
     <header>
         <div class="header-nav-group">
             <button id="prev-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo - 1)" title="Önceki Sûre">
@@ -450,34 +504,34 @@ async def ana_sayfa():
         </div>
     </header>
 
-    <!-- Sol Menü: Kulakçık ve Drawer -->
-    <div class="drawer-container">
+    <!-- Sol Menü: Kulakçık ve Drawer (Mobilde dokununca açılıp kapanabilir) -->
+    <div id="drawer-container" class="drawer-container">
         <div id="sidebar-drawer" class="sidebar-drawer">
             <h3>Sûreler</h3>
             <div id="sure-list">Yükleniyor...</div>
         </div>
-        <div class="drawer-tab">☰ SÛRELER</div>
+        <div class="drawer-tab" onclick="toggleDrawer()">☰ SÛRELER</div>
     </div>
 
-    <!-- İki Bölmeli Ana Alan -->
+    <!-- İki Bölmeli Ana Alan (Mobilde Üst: Ayetler, Alt: Müfredat) -->
     <main>
-        <!-- SOL BÖLÜM: Kur'an Ayetleri -->
+        <!-- ÜST PANEL (Mobilde): Ayetler -->
         <section class="panel-ayetler" id="panel-ayetler">
             <div id="ayetler-container">Yükleniyor...</div>
         </section>
 
-        <!-- SAĞ BÖLÜM: Müfredat Kök Açıklaması -->
+        <!-- ALT PANEL (Mobilde): Müfredat -->
         <section class="panel-mufredat" id="panel-mufredat">
             <div class="mufredat-card">
                 <div id="mufredat-title" class="mufredat-header">Müfredat</div>
                 <div id="mufredat-desc" class="mufredat-body">
-                    İncelemek istediğiniz kelimenin kök anlamını görmek için soldaki ayetlerden bir kelimenin üzerine gelin.
+                    İncelemek istediğiniz kelimenin kök anlamını görmek için yukarıdaki ayetlerden bir kelimeye dokunun.
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Footer: Ayete Atlama ve Otomatik Senkronize Kutu -->
+    <!-- Footer: Ayete Atlama -->
     <footer>
         <form class="goto-form" onsubmit="handleGotoAyet(event)">
             <label for="ayet-input">Ayet No:</label>
@@ -498,6 +552,10 @@ async def ana_sayfa():
             await yukleSure(mevcutSureNo);
         }
 
+        function toggleDrawer() {
+            document.getElementById('drawer-container').classList.toggle('open');
+        }
+
         async function fetchSureler() {
             try {
                 const res = await fetch('/suraler');
@@ -516,7 +574,10 @@ async def ana_sayfa():
                 const item = document.createElement('div');
                 item.className = 'sure-list-item' + (s.sure_no === mevcutSureNo ? ' active' : '');
                 item.innerHTML = `<span>${s.sure_no}. Sûre</span><span style="color:var(--text-muted); font-size:12px;">${s.ayet_sayisi} Ayet</span>`;
-                item.onclick = () => degistirSure(s.sure_no);
+                item.onclick = () => {
+                    degistirSure(s.sure_no);
+                    document.getElementById('drawer-container').classList.remove('open');
+                };
                 container.appendChild(item);
             });
         }
@@ -525,7 +586,6 @@ async def ana_sayfa():
             mevcutSureNo = sureNo;
             document.getElementById('header-sure-title').textContent = `${sureNo}. Sûre`;
             
-            // Navigasyon buton kontrolleri
             document.getElementById('prev-btn').disabled = sureNo <= 1;
             document.getElementById('next-btn').disabled = tumSureler.length > 0 && sureNo >= tumSureler.length;
 
@@ -569,19 +629,23 @@ async def ana_sayfa():
                 const arabicRow = document.createElement('div');
                 arabicRow.className = 'arabic-row';
 
-                // Kelimeler
                 ayet.kelimeler.forEach(k => {
                     const span = document.createElement('span');
                     span.className = 'kelime-token' + (k.kok_id ? ' has-kok' : '');
                     span.textContent = k.kelime_metni;
 
                     if (k.kok_id) {
+                        // Masaüstünde fareyle gelince
                         span.addEventListener('mouseenter', () => gosterMufredat(k.kelime_id, span));
+                        // Mobilde dokununca (click/touch)
+                        span.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            gosterMufredat(k.kelime_id, span);
+                        });
                     }
                     arabicRow.appendChild(span);
                 });
 
-                // Ayet numarası dairesi
                 const numBadge = document.createElement('span');
                 numBadge.className = 'ayet-num-badge';
                 numBadge.textContent = ayet.ayet_no;
@@ -594,7 +658,6 @@ async def ana_sayfa():
             });
         }
 
-        // Scroll esnasında en üstte görünen ayeti bulup footer kutusuna yazan observer
         function setupIntersectionObserver() {
             if (observer) observer.disconnect();
 
@@ -605,7 +668,6 @@ async def ana_sayfa():
             observer = new IntersectionObserver((entries) => {
                 if (!isUserScrolling) return;
 
-                // Görünen elemanlar arasında üst kısıma en yakın olanı tespit et
                 const visibleEntries = entries.filter(e => e.isIntersecting);
                 if (visibleEntries.length > 0) {
                     visibleEntries.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -623,7 +685,6 @@ async def ana_sayfa():
         }
 
         async function gosterMufredat(kelimeId, element) {
-            // Önceki seçili kelime vurgusunu temizle
             document.querySelectorAll('.kelime-token.selected').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
 
@@ -661,7 +722,6 @@ async def ana_sayfa():
                 isUserScrolling = false;
                 ayetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
-                // Vurgu efekti
                 ayetEl.style.transition = 'background-color 0.5s';
                 ayetEl.style.backgroundColor = '#fef9c3';
                 setTimeout(() => {
