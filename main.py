@@ -3,7 +3,7 @@ Kur'an okuma API'si - kelimeye dokununca kok anlamini gostermek icin.
 
 Calistirma:
     $env:DATABASE_URL="postgresql://db_owner:SIFRENIZ@ep-...aws.neon.tech/kuran?sslmode=require"
-    uvicorn main:app --reload
+    uvicorn main_2:app --reload
 """
 import os
 from contextlib import asynccontextmanager
@@ -19,31 +19,30 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 ORIGINS = ["*"]  # gelistirme icin acik; production'da kendi domain(ler)inle degistir
 
-# Kur'an'daki 114 surenin sirasiyla isimleri ("Suresi" eki olmadan).
-SURE_ISIMLERI = [
-    "", "Fâtiha", "Bakara", "Âl-i İmrân", "Nisâ", "Mâide", "En'âm", "A'râf", "Enfâl",
-    "Tevbe", "Yunus", "Hûd", "Yusuf", "Ra'd", "İbrahim", "Hicr", "Nahl", "İsrâ", "Kehf",
-    "Meryem", "Tâ-Hâ", "Enbiyâ", "Hac", "Mü'minûn", "Nûr", "Furkan", "Şuarâ", "Neml",
-    "Kasas", "Ankebût", "Rûm", "Lokman", "Secde", "Ahzâb", "Sebe'", "Fâtır", "Yâsin",
-    "Sâffât", "Sâd", "Zümer", "Mü'min", "Fussilet", "Şûrâ", "Zuhruf", "Duhân", "Câsiye",
-    "Ahkaf", "Muhammed", "Fetih", "Hucurât", "Kaf", "Zâriyât", "Tûr", "Necm", "Kamer",
-    "Rahmân", "Vâkıa", "Hadid", "Mücâdele", "Haşr", "Mümtehine", "Saf", "Cum'a",
-    "Münâfikûn", "Teğabün", "Talâk", "Tahrim", "Mülk", "Kalem", "Hâkka", "Meâric", "Nuh",
-    "Cin", "Müzzemmil", "Müddessir", "Kıyamet", "İnsan", "Mürselât", "Nebe'", "Nâziât",
-    "Abese", "Tekvir", "İnfitâr", "Mutaffifin", "İnşikak", "Bürûc", "Târık", "A'lâ",
-    "Gâşiye", "Fecr", "Beled", "Şems", "Leyl", "Duhâ", "İnşirâh", "Tin", "Alak", "Kadir",
-    "Beyyine", "Zilzâl", "Âdiyât", "Kâria", "Tekâsür", "Asr", "Hümeze", "Fil", "Kureyş",
-    "Mâûn", "Kevser", "Kâfirûn", "Nasr", "Tebbet", "İhlâs", "Felâk", "Nâs",
-]
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL ortam degiskeni tanimli degil.")
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+
+    app.state.sure_isimleri = {}
+    try:
+        async with app.state.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT sure_no, sure_adi FROM sureler")
+            app.state.sure_isimleri = {r["sure_no"]: r["sure_adi"] for r in rows}
+        if not app.state.sure_isimleri:
+            print("Uyari: 'sureler' tablosu bos. 'python import_sureler.py' calistirdin mi?")
+    except asyncpg.exceptions.UndefinedTableError:
+        print("Uyari: 'sureler' tablosu yok. 'python import_sureler.py' calistirdin mi?")
+
     yield
     await app.state.pool.close()
+
+
+def _sure_adi(app: FastAPI, sure_no: int) -> str:
+    """Sûre ismini, startup'ta 'sureler' tablosundan yuklenen onbellekten dondurur."""
+    return app.state.sure_isimleri.get(sure_no, "")
 
 
 app = FastAPI(title="Kuran Mufredat API", lifespan=lifespan)
@@ -58,6 +57,12 @@ app.add_middleware(
 
 # ---------- Pydantic modelleri ----------
 
+class Meal(BaseModel):
+    yazar_kodu: str
+    yazar_adi: str
+    meal_metni: str
+
+
 class Kelime(BaseModel):
     kelime_id: int
     kelime_no: int
@@ -70,6 +75,7 @@ class Ayet(BaseModel):
     sure_no: int
     ayet_no: int
     ayet_metni: str
+    mealler: list[Meal] = []
     kelimeler: list[Kelime]
 
 
@@ -102,7 +108,7 @@ async def ana_sayfa():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kur'an-ı Kerim & Müfredat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #b58941;
@@ -129,18 +135,26 @@ async def ana_sayfa():
             direction: ltr;
         }
 
-        /* 1. Header */
+        /* 1. Header (Ayetler Panelini Ortalayacak Şekilde Dizayn Edildi) */
         header {
             height: 56px;
             background: #ffffff;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            justify-content: center;
             padding: 0 16px;
             z-index: 10;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
             flex-shrink: 0;
+            position: relative;
+        }
+
+        .header-ayetler-alan {
+            width: calc(58% + 16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 32px;
         }
 
         .header-nav-group {
@@ -149,12 +163,33 @@ async def ana_sayfa():
             gap: 12px;
         }
 
-        .header-title {
+        .header-title-btn {
+            background: none;
+            border: 1px solid transparent;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 18px;
             font-weight: 700;
             color: var(--text-dark);
-            min-width: 120px;
-            text-align: center;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .header-title-btn:hover {
+            background: #f8fafc;
+            border-color: var(--border);
+            color: var(--primary);
+        }
+
+        .header-title-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke-width: 2.2;
+            color: var(--text-muted);
         }
 
         .nav-btn {
@@ -320,22 +355,17 @@ async def ana_sayfa():
         }
 
         .ayet-card {
-            margin-bottom: 32px;
+            margin-bottom: 30px;
             text-align: center;
             scroll-margin-top: 20px;
         }
 
         .ayet-title {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
             color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .ayet-divider {
-            height: 1px;
-            background-color: #f3f4f6;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            letter-spacing: 0.01em;
         }
 
         .arabic-row {
@@ -347,7 +377,7 @@ async def ana_sayfa():
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 1px;
         }
 
         .ayet-num-badge {
@@ -369,7 +399,7 @@ async def ana_sayfa():
         .kelime-token {
             position: relative;
             cursor: default;
-            padding: 2px 6px;
+            padding: 2px 3px;
             border-radius: 6px;
             transition: all 0.15s ease;
             -webkit-tap-highlight-color: transparent;
@@ -383,6 +413,105 @@ async def ana_sayfa():
         .kelime-token.selected {
             background-color: var(--primary-light);
             color: #92400e;
+        }
+
+        /* 3. Meal Kutusu: align-items: flex-start İle Üste Sabitlendi */
+        .ayet-meal-box {
+            margin-top: 14px;
+            padding: 10px 16px;
+            background: #fbfbfb;
+            border-left: 3px solid var(--primary);
+            border-radius: 0 6px 6px 0;
+            display: flex;
+            align-items: flex-start; /* Metin uzasa da butonlar yukarıda sabit kalır */
+            justify-content: space-between;
+            gap: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+
+        .ayet-meal-sol {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: left;
+            min-width: 100px;
+            cursor: pointer;
+            user-select: none;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .ayet-meal-sol:hover {
+            background: var(--primary-light);
+            color: #92400e;
+        }
+
+        .ayet-meal-orta {
+            flex: 1;
+            text-align: center;
+            color: #374151;
+            padding-top: 1px;
+        }
+
+        .ayet-meal-sag {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            padding-top: 1px;
+        }
+
+        .meal-sayac-inline {
+            font-size: 10px;
+            color: var(--text-muted);
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .meal-nav-btn {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--text-dark);
+            transition: all 0.15s;
+        }
+
+        .meal-nav-btn:hover {
+            background: #f3f4f6;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* 4. Çiçekli / Sarmaşık Motifli Ayraç */
+        .ayet-floral-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 28px auto 8px auto;
+            width: 100%;
+            max-width: 520px;
+            opacity: 0.85;
+            user-select: none;
+        }
+
+        .ayet-floral-divider svg {
+            width: 100%;
+            height: 28px;
+            fill: none;
+            stroke: #2b2b2b;
+            stroke-width: 1.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .panel-mufredat {
@@ -439,6 +568,146 @@ async def ana_sayfa():
             font-weight: 700 !important;
         }
 
+        /* Hızlı Sûre Seçici Modal */
+        .sure-secici-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2100;
+            padding: 20px;
+        }
+
+        .sure-secici-backdrop.acik {
+            display: flex;
+        }
+
+        .sure-secici-modal {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .sure-secici-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #fbfbfb;
+        }
+
+        .sure-secici-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .sure-secici-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(181, 137, 65, 0.15);
+        }
+
+        .sure-secici-liste {
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sure-secici-item {
+            padding: 9px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .sure-secici-item:hover,
+        .sure-secici-item.secili {
+            background: var(--primary-light);
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        /* Meal Seçici Modal */
+        .meal-secici-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2200;
+            padding: 20px;
+        }
+
+        .meal-secici-backdrop.acik {
+            display: flex;
+        }
+
+        .meal-secici-modal {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 360px;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .meal-secici-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fbfbfb;
+        }
+
+        .meal-secici-liste {
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meal-secici-item {
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .meal-secici-item:hover,
+        .meal-secici-item.secili {
+            background: var(--primary-light);
+            color: #92400e;
+            font-weight: 600;
+        }
+
         /* Kok modal */
         .kok-modal-backdrop {
             position: fixed;
@@ -459,8 +728,8 @@ async def ana_sayfa():
             background: #ffffff;
             border-radius: 10px;
             width: 100%;
-            max-width: 440px;
-            max-height: 75vh;
+            max-width: 500px;
+            max-height: 80vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -545,6 +814,7 @@ async def ana_sayfa():
             direction: rtl;
             text-align: right;
             color: #374151;
+            margin-bottom: 6px;
         }
 
         .kok-daha-fazla {
@@ -591,7 +861,7 @@ async def ana_sayfa():
             font-weight: 600;
         }
 
-        /* 3. Footer */
+        /* 5. Footer */
         footer {
             height: 50px;
             background: #ffffff;
@@ -634,6 +904,14 @@ async def ana_sayfa():
 
         /* Mobil Düzen */
         @media (max-width: 768px) {
+            header {
+                justify-content: center;
+            }
+            .header-ayetler-alan {
+                width: 100%;
+                margin-left: 0;
+            }
+
             main {
                 flex-direction: column;
                 margin-left: 0;
@@ -642,7 +920,7 @@ async def ana_sayfa():
             .panel-ayetler {
                 width: 100%;
                 height: 55%;
-                padding: 16px 20px;
+                padding: 16px 18px;
                 border-right: none;
                 border-bottom: 2px solid var(--border);
             }
@@ -650,7 +928,17 @@ async def ana_sayfa():
             .arabic-row {
                 font-size: 26px;
                 line-height: 2.1;
+                gap: 1px;
+            }
+
+            .ayet-meal-box {
+                flex-direction: column;
+                align-items: center;
                 gap: 8px;
+                text-align: center;
+            }
+            .ayet-meal-sol, .ayet-meal-sag {
+                align-self: center;
             }
 
             .panel-mufredat {
@@ -666,16 +954,6 @@ async def ana_sayfa():
                 height: 100%;
                 overflow-y: auto;
                 border: 1px solid #e2e8f0;
-            }
-
-            .mufredat-header {
-                font-size: 15px;
-                margin-bottom: 8px;
-            }
-
-            .mufredat-body {
-                font-size: 13px;
-                line-height: 1.6;
             }
 
             .drawer-container {
@@ -694,20 +972,27 @@ async def ana_sayfa():
 </head>
 <body>
 
-    <!-- Header -->
+    <!-- Header (Sûre Başlığı Sol Ayet Alanını Ortalar) -->
     <header>
-        <div class="header-nav-group">
-            <button id="prev-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo - 1)" title="Önceki Sûre">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div id="header-sure-title" class="header-title">Yükleniyor...</div>
-            <button id="next-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo + 1)" title="Sonraki Sûre">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
+        <div class="header-ayetler-alan">
+            <div class="header-nav-group">
+                <button id="prev-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo - 1)" title="Önceki Sûre">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button id="header-sure-btn" class="header-title-btn" onclick="acSureSeciciModal()" title="Sûre Seçmek veya Aramak İçin Tıklayın">
+                    <span id="header-sure-title">Yükleniyor...</span>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <button id="next-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo + 1)" title="Sonraki Sûre">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -738,6 +1023,31 @@ async def ana_sayfa():
         </section>
     </main>
 
+    <!-- Hızlı Sûre Arama & Seçim Modalı -->
+    <div id="sure-secici-backdrop" class="sure-secici-backdrop" onclick="if(event.target===this) kapatSureSeciciModal()">
+        <div class="sure-secici-modal">
+            <div class="sure-secici-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700; font-size:15px;">Sûre Seç veya Ara</span>
+                    <button class="kok-modal-kapat" onclick="kapatSureSeciciModal()">&times;</button>
+                </div>
+                <input type="text" id="sure-arama-input" class="sure-secici-input" placeholder="Sûre adı veya numarası yazın..." oninput="filtreleSureler(this.value)" onkeydown="sureAramaKeydown(event)">
+            </div>
+            <div id="sure-secici-liste" class="sure-secici-liste"></div>
+        </div>
+    </div>
+
+    <!-- Genel Meal Seçim Modalı (Uzun Basınca Açılır) -->
+    <div id="meal-secici-backdrop" class="meal-secici-backdrop" onclick="if(event.target===this) kapatMealSeciciModal()">
+        <div class="meal-secici-modal">
+            <div class="meal-secici-header">
+                <span style="font-weight:700; font-size:15px;">Varsayılan Meali Seçin</span>
+                <button class="kok-modal-kapat" onclick="kapatMealSeciciModal()">&times;</button>
+            </div>
+            <div id="meal-secici-liste" class="meal-secici-liste"></div>
+        </div>
+    </div>
+
     <!-- Kökün geçtiği sûreler modalı -->
     <div id="kok-modal-backdrop" class="kok-modal-backdrop" onclick="if(event.target===this) kapatKokModal()">
         <div class="kok-modal">
@@ -761,9 +1071,45 @@ async def ana_sayfa():
     <script>
         let mevcutSureNo = 1;
         let tumSureler = [];
+        let mevcutAyetlerVerisi = [];
         const cache = {};
         let observer = null;
         let isUserScrolling = true;
+
+        // LocalStorage'dan tercih edilen meali al (yoksa varsayılan: 'diyanet')
+        let aktifTercihEdilenMealKodu = localStorage.getItem('tercih_edilen_meal') || 'diyanet';
+
+        // Vektörel Çiçekli / Kıvrımlı Ayraç SVG Şablonu
+        const FLORAL_DIVIDER_HTML = `
+            <div class="ayet-floral-divider">
+                <svg viewBox="0 0 600 50">
+                    <line x1="20" y1="25" x2="190" y2="25" stroke="#1f2937" stroke-width="1.2" />
+                    <path d="M 195 25 Q 235 5 280 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
+                    <path d="M 215 17 Q 210 9 220 12 C 228 15 220 22 215 17 Z" fill="#2b2b2b" />
+                    <path d="M 245 13 Q 248 5 256 9 C 260 14 252 20 245 13 Z" fill="#2b2b2b" />
+                    <g transform="translate(250, 27) scale(0.65)">
+                        <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                        <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                        <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    </g>
+                    <path d="M 270 12 C 270 34, 330 34, 330 12" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                    <g transform="translate(300, 10) scale(0.7)">
+                        <path d="M 0 0 C -12 -18, 12 -18, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                        <path d="M -5 -4 C -22 -10, -15 -25, -2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                        <path d="M 5 -4 C 22 -10, 15 -25, 2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    </g>
+                    <path d="M 320 25 Q 365 5 405 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
+                    <path d="M 355 13 Q 352 5 344 9 C 340 14 348 20 355 13 Z" fill="#2b2b2b" />
+                    <path d="M 385 17 Q 390 9 380 12 C 372 15 380 22 385 17 Z" fill="#2b2b2b" />
+                    <g transform="translate(350, 27) scale(0.65)">
+                        <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                        <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                        <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    </g>
+                    <line x1="410" y1="25" x2="580" y2="25" stroke="#1f2937" stroke-width="1.2" />
+                </svg>
+            </div>
+        `;
 
         async function init() {
             await fetchSureler();
@@ -792,12 +1138,10 @@ async def ana_sayfa():
                 const item = document.createElement('div');
                 item.className = 'sure-list-item' + (s.sure_no === mevcutSureNo ? ' active' : '');
                 
-                // Sure Adi
                 const isimSpan = document.createElement('span');
                 isimSpan.className = 'sure-isim-alani';
                 isimSpan.textContent = `${s.sure_no}. ${s.sure_adi || ''}`;
 
-                // Ayet Numarasi Kutusu
                 const inputAyet = document.createElement('input');
                 inputAyet.type = 'number';
                 inputAyet.min = '1';
@@ -805,10 +1149,8 @@ async def ana_sayfa():
                 inputAyet.placeholder = 'Ayet';
                 inputAyet.className = 'sure-ayet-input';
 
-                // Kutuya tiklaninca satir tiklamasini onle
                 inputAyet.addEventListener('click', (e) => e.stopPropagation());
 
-                // Enter'a basinca ilgili sure ve ayete git
                 inputAyet.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -823,7 +1165,6 @@ async def ana_sayfa():
                     }
                 });
 
-                // Ayet Sayisi
                 const adetSpan = document.createElement('span');
                 adetSpan.className = 'sure-ayet-sayisi';
                 adetSpan.textContent = `${s.ayet_sayisi} Ayet`;
@@ -839,6 +1180,104 @@ async def ana_sayfa():
 
                 container.appendChild(item);
             });
+        }
+
+        /* Hızlı Sûre Arama / Modal İşlemleri */
+        function acSureSeciciModal() {
+            const backdrop = document.getElementById('sure-secici-backdrop');
+            const input = document.getElementById('sure-arama-input');
+            backdrop.classList.add('acik');
+            input.value = '';
+            filtreleSureler('');
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function kapatSureSeciciModal() {
+            document.getElementById('sure-secici-backdrop').classList.remove('acik');
+        }
+
+        function filtreleSureler(query) {
+            const liste = document.getElementById('sure-secici-liste');
+            liste.innerHTML = '';
+            const q = query.trim().toLowerCase();
+
+            const eslesenler = tumSureler.filter(s => {
+                if (!q) return true;
+                const noStr = String(s.sure_no);
+                const adi = (s.sure_adi || '').toLowerCase();
+                return noStr === q || noStr.startsWith(q) || adi.includes(q);
+            });
+
+            if (eslesenler.length === 0) {
+                liste.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:13px;">Eşleşen sûre bulunamadı.</div>';
+                return;
+            }
+
+            eslesenler.forEach((s) => {
+                const row = document.createElement('div');
+                row.className = 'sure-secici-item' + (s.sure_no === mevcutSureNo ? ' secili' : '');
+                row.dataset.sureNo = s.sure_no;
+                row.innerHTML = `<span><strong>${s.sure_no}.</strong> ${s.sure_adi || ''}</span><span style="color:var(--text-muted); font-size:12px;">${s.ayet_sayisi} Ayet</span>`;
+                row.onclick = () => {
+                    degistirSure(s.sure_no);
+                    kapatSureSeciciModal();
+                };
+                liste.appendChild(row);
+            });
+        }
+
+        function sureAramaKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const ilk = document.querySelector('.sure-secici-item');
+                if (ilk && ilk.dataset.sureNo) {
+                    degistirSure(parseInt(ilk.dataset.sureNo));
+                    kapatSureSeciciModal();
+                }
+            } else if (e.key === 'Escape') {
+                kapatSureSeciciModal();
+            }
+        }
+
+        /* Tüm Sayfayı Seçilen Meale Döndürme & LocalStorage Yönetimi */
+        function acMealSeciciModal() {
+            // Mevcut ayetlerde bulunan tüm benzersiz yazarları topla
+            const yazarlarMap = {};
+            mevcutAyetlerVerisi.forEach(a => {
+                (a.mealler || []).forEach(m => {
+                    if (!yazarlarMap[m.yazar_kodu]) {
+                        yazarlarMap[m.yazar_kodu] = m.yazar_adi;
+                    }
+                });
+            });
+
+            const liste = document.getElementById('meal-secici-liste');
+            liste.innerHTML = '';
+
+            const kodlar = Object.keys(yazarlarMap);
+            if (kodlar.length === 0) {
+                liste.innerHTML = '<div style="padding:15px; text-align:center; color:var(--text-muted);">Kayıtlı meal bulunamadı.</div>';
+            } else {
+                kodlar.forEach(kod => {
+                    const row = document.createElement('div');
+                    row.className = 'meal-secici-item' + (kod === aktifTercihEdilenMealKodu ? ' secili' : '');
+                    row.innerHTML = `<span>${yazarlarMap[kod]}</span>${kod === aktifTercihEdilenMealKodu ? '<span>✓</span>' : ''}`;
+                    row.onclick = () => {
+                        aktifTercihEdilenMealKodu = kod;
+                        localStorage.setItem('tercih_edilen_meal', kod);
+                        kapatMealSeciciModal();
+                        // Tüm sayfadaki ayetleri yeniden render ederek bu meale odakla
+                        renderAyetler(mevcutAyetlerVerisi);
+                    };
+                    liste.appendChild(row);
+                });
+            }
+
+            document.getElementById('meal-secici-backdrop').classList.add('acik');
+        }
+
+        function kapatMealSeciciModal() {
+            document.getElementById('meal-secici-backdrop').classList.remove('acik');
         }
 
         async function sureVeAyeteGit(sureNo, ayetNo) {
@@ -866,8 +1305,8 @@ async def ana_sayfa():
 
             try {
                 const res = await fetch(`/sure/${sureNo}`);
-                const ayetler = await res.json();
-                renderAyetler(ayetler);
+                mevcutAyetlerVerisi = await res.json();
+                renderAyetler(mevcutAyetlerVerisi);
                 setupIntersectionObserver();
             } catch (err) {
                 ayetlerContainer.innerHTML = '<div style="color:red; text-align:center;">Sure getirilemedi.</div>';
@@ -889,15 +1328,14 @@ async def ana_sayfa():
                 card.id = `ayet-${ayet.ayet_no}`;
                 card.dataset.ayetNo = ayet.ayet_no;
 
+                // 1. Ayet Numarası ve Başlığı
                 const title = document.createElement('div');
                 title.className = 'ayet-title';
                 const sureBilgisiK = tumSureler.find(s => s.sure_no === ayet.sure_no);
                 const sureAdiK = sureBilgisiK ? sureBilgisiK.sure_adi : 'Sûre';
                 title.textContent = `${ayet.sure_no}. ${sureAdiK}, ${ayet.ayet_no}. Ayet`;
 
-                const divider = document.createElement('div');
-                divider.className = 'ayet-divider';
-
+                // 2. Arapça Ayet Metni
                 const arabicRow = document.createElement('div');
                 arabicRow.className = 'arabic-row';
 
@@ -922,8 +1360,74 @@ async def ana_sayfa():
                 arabicRow.appendChild(numBadge);
 
                 card.appendChild(title);
-                card.appendChild(divider);
                 card.appendChild(arabicRow);
+
+                // 3. Türkçe Meal (Solda Yazar, Sağda Seçici Sabit, Ortada Metin)
+                if (ayet.mealler && ayet.mealler.length > 0) {
+                    // Tercih edilen meal kodunu bul, yoksa ilkini seç
+                    let mealIndex = ayet.mealler.findIndex(m => m.yazar_kodu === aktifTercihEdilenMealKodu);
+                    if (mealIndex === -1) mealIndex = 0;
+
+                    const mealDiv = document.createElement('div');
+                    mealDiv.className = 'ayet-meal-box';
+
+                    const guncelleMealIcerik = () => {
+                        const m = ayet.mealler[mealIndex];
+                        mealDiv.innerHTML = `
+                            <div class="ayet-meal-sol" title="Tüm mealleri değiştirmek için tıklayın">${m.yazar_adi}</div>
+                            <div class="ayet-meal-orta">${m.meal_metni}</div>
+                            <div class="ayet-meal-sag">
+                                ${ayet.mealler.length > 1 ? `
+                                    <button class="meal-nav-btn prev-m">‹</button>
+                                    <span class="meal-sayac-inline">${mealIndex + 1}/${ayet.mealler.length}</span>
+                                    <button class="meal-nav-btn next-m">›</button>
+                                ` : ''}
+                            </div>
+                        `;
+
+                        // Meal yazarının üzerine tıklayınca veya uzun basınca modal aç
+                        const solYazarEl = mealDiv.querySelector('.ayet-meal-sol');
+                        let pressTimer = null;
+
+                        solYazarEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            acMealSeciciModal();
+                        });
+
+                        solYazarEl.addEventListener('touchstart', (e) => {
+                            pressTimer = setTimeout(() => {
+                                acMealSeciciModal();
+                            }, 500); // 500ms uzun basma süresi
+                        }, {passive: true});
+
+                        solYazarEl.addEventListener('touchend', () => {
+                            clearTimeout(pressTimer);
+                        });
+
+                        // Yön oklarıyla o ayet özelinde gezinme
+                        if (ayet.mealler.length > 1) {
+                            mealDiv.querySelector('.prev-m').onclick = (e) => {
+                                e.stopPropagation();
+                                mealIndex = (mealIndex - 1 + ayet.mealler.length) % ayet.mealler.length;
+                                guncelleMealIcerik();
+                            };
+                            mealDiv.querySelector('.next-m').onclick = (e) => {
+                                e.stopPropagation();
+                                mealIndex = (mealIndex + 1) % ayet.mealler.length;
+                                guncelleMealIcerik();
+                            };
+                        }
+                    };
+
+                    guncelleMealIcerik();
+                    card.appendChild(mealDiv);
+                }
+
+                // 4. Sonraki Ayete Geçmeden Önceki Çiçekli Ayraç (En Altta)
+                const dividerWrapper = document.createElement('div');
+                dividerWrapper.innerHTML = FLORAL_DIVIDER_HTML;
+                card.appendChild(dividerWrapper);
+
                 container.appendChild(card);
             });
         }
@@ -1005,6 +1509,30 @@ async def ana_sayfa():
             }).join(' ');
         }
 
+        function olusturOnizlemeHtml(item, mealIdx) {
+            const sureAdi = item.sure_adi ? `${item.sure_no}. ${item.sure_adi}` : `${item.sure_no}. Sûre`;
+            const vurguluHtml = renderAyetHtmlVurgulu(item.ayet_metni, item.vurgulu_kelimeler);
+            let html = `<div class="arabic-row" style="font-size:24px; line-height:2.2; justify-content:center;">${vurguluHtml}</div>`;
+
+            if (item.mealler && item.mealler.length > 0) {
+                const m = item.mealler[mealIdx];
+                html += `
+                    <div class="ayet-meal-box" style="margin-top:14px;">
+                        <div class="ayet-meal-sol">${m.yazar_adi}</div>
+                        <div class="ayet-meal-orta">${m.meal_metni}</div>
+                        <div class="ayet-meal-sag">
+                            ${item.mealler.length > 1 ? `
+                                <button class="meal-nav-btn prev-onizleme">‹</button>
+                                <span class="meal-sayac-inline">${mealIdx + 1}/${item.mealler.length}</span>
+                                <button class="meal-nav-btn next-onizleme">›</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            return html;
+        }
+
         async function gosterKokAyetleri(kokId, offsetParam) {
             const backdrop = document.getElementById('kok-modal-backdrop');
             const body = document.getElementById('kok-modal-body');
@@ -1057,11 +1585,75 @@ async def ana_sayfa():
                     row.appendChild(ust);
                     row.appendChild(metin);
 
-                    row.addEventListener('mouseenter', () => {
+                    // Modal içi mealler
+                    let modalMealIndex = (item.mealler || []).findIndex(m => m.yazar_kodu === aktifTercihEdilenMealKodu);
+                    if (modalMealIndex === -1) modalMealIndex = 0;
+
+                    if (item.mealler && item.mealler.length > 0) {
+                        const mealDiv = document.createElement('div');
+                        mealDiv.className = 'ayet-meal-box';
+                        mealDiv.style.marginTop = '6px';
+                        mealDiv.style.padding = '8px 12px';
+
+                        const guncelleModalMeal = () => {
+                            const m = item.mealler[modalMealIndex];
+                            mealDiv.innerHTML = `
+                                <div class="ayet-meal-sol" style="font-size:10px;">${m.yazar_adi}</div>
+                                <div class="ayet-meal-orta" style="font-size:13px;">${m.meal_metni}</div>
+                                <div class="ayet-meal-sag">
+                                    ${item.mealler.length > 1 ? `
+                                        <button class="meal-nav-btn m-prev">‹</button>
+                                        <span class="meal-sayac-inline">${modalMealIndex + 1}/${item.mealler.length}</span>
+                                        <button class="meal-nav-btn m-next">›</button>
+                                    ` : ''}
+                                </div>
+                            `;
+
+                            if (item.mealler.length > 1) {
+                                mealDiv.querySelector('.m-prev').onclick = (e) => {
+                                    e.stopPropagation();
+                                    modalMealIndex = (modalMealIndex - 1 + item.mealler.length) % item.mealler.length;
+                                    guncelleModalMeal();
+                                    guncelleOnizleme(modalMealIndex);
+                                };
+                                mealDiv.querySelector('.m-next').onclick = (e) => {
+                                    e.stopPropagation();
+                                    modalMealIndex = (modalMealIndex + 1) % item.mealler.length;
+                                    guncelleModalMeal();
+                                    guncelleOnizleme(modalMealIndex);
+                                };
+                            }
+                        };
+
+                        guncelleModalMeal();
+                        row.appendChild(mealDiv);
+                    }
+
+                    // Önizleme fonksiyonu
+                    const guncelleOnizleme = (idx) => {
                         titleEl.innerHTML = `<span>${sureAdi}, ${item.ayet_no}. Ayet</span><span class="kok-ipucu">‹ kök açıklaması</span>`;
                         titleEl.classList.remove('tiklanabilir');
-                        descEl.innerHTML = `<div class="arabic-row" style="font-size:24px; line-height:2.2; justify-content:center;">${vurguluHtml}</div>`;
-                    });
+                        descEl.innerHTML = olusturOnizlemeHtml(item, idx);
+
+                        if (item.mealler && item.mealler.length > 1) {
+                            const prevBtn = descEl.querySelector('.prev-onizleme');
+                            const nextBtn = descEl.querySelector('.next-onizleme');
+                            if (prevBtn && nextBtn) {
+                                prevBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    modalMealIndex = (modalMealIndex - 1 + item.mealler.length) % item.mealler.length;
+                                    guncelleOnizleme(modalMealIndex);
+                                };
+                                nextBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    modalMealIndex = (modalMealIndex + 1) % item.mealler.length;
+                                    guncelleOnizleme(modalMealIndex);
+                                };
+                            }
+                        }
+                    };
+
+                    row.addEventListener('mouseenter', () => guncelleOnizleme(modalMealIndex));
                     row.addEventListener('mouseleave', () => {
                         titleEl.innerHTML = onizlemeOncesiBaslik;
                         titleEl.classList.add('tiklanabilir');
@@ -1069,7 +1661,6 @@ async def ana_sayfa():
                     });
 
                     row.addEventListener('click', () => kokAyetineGit(item.sure_no, item.ayet_no));
-
                     body.appendChild(row);
                 });
 
@@ -1114,7 +1705,11 @@ async def ana_sayfa():
         }
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') kapatKokModal();
+            if (e.key === 'Escape') {
+                kapatKokModal();
+                kapatSureSeciciModal();
+                kapatMealSeciciModal();
+            }
         });
 
         function handleGotoAyet(event) {
@@ -1144,7 +1739,7 @@ async def sure_listesi():
         return [
             {
                 "sure_no": r["sure_no"],
-                "sure_adi": SURE_ISIMLERI[r["sure_no"]] if r["sure_no"] < len(SURE_ISIMLERI) else "",
+                "sure_adi": _sure_adi(app, r["sure_no"]),
                 "ayet_sayisi": r["ayet_sayisi"],
             }
             for r in rows
@@ -1153,20 +1748,24 @@ async def sure_listesi():
 
 @app.get("/sure/{sure_no}", response_model=list[Ayet])
 async def sure_detay(sure_no: int):
-    """Bir surenin butun ayetlerini, her ayetin kelime listesiyle birlikte doner."""
+    """Bir surenin butun ayetlerini, her ayetin kelimeleri ve tum mealleriyle birlikte doner."""
     async with _pool(app).acquire() as conn:
         ayet_rows = await conn.fetch(
-            "SELECT sure_no, ayet_no, ayet_metni FROM ayetler "
-            "WHERE sure_no = $1 ORDER BY ayet_no",
+            "SELECT sure_no, ayet_no, ayet_metni FROM ayetler WHERE sure_no = $1 ORDER BY ayet_no",
             sure_no,
         )
         if not ayet_rows:
             raise HTTPException(status_code=404, detail="Sure bulunamadi")
 
         kelime_rows = await conn.fetch(
-            "SELECT sure_no, ayet_no, kelime_id, kelime_no, kelime_metni, "
-            "kok_id, normalized_root FROM kelimeler "
-            "WHERE sure_no = $1 ORDER BY ayet_no, kelime_no",
+            "SELECT sure_no, ayet_no, kelime_id, kelime_no, kelime_metni, kok_id, normalized_root "
+            "FROM kelimeler WHERE sure_no = $1 ORDER BY ayet_no, kelime_no",
+            sure_no,
+        )
+
+        meal_rows = await conn.fetch(
+            "SELECT sure_no, ayet_no, yazar_kodu, yazar_adi, meal_metni "
+            "FROM mealler WHERE sure_no = $1 ORDER BY ayet_no, meal_id",
             sure_no,
         )
 
@@ -1182,12 +1781,23 @@ async def sure_detay(sure_no: int):
             )
         )
 
+    mealler_by_ayet: dict[int, list[Meal]] = {}
+    for r in meal_rows:
+        mealler_by_ayet.setdefault(r["ayet_no"], []).append(
+            Meal(
+                yazar_kodu=r["yazar_kodu"],
+                yazar_adi=r["yazar_adi"],
+                meal_metni=r["meal_metni"],
+            )
+        )
+
     return [
         Ayet(
             sure_no=r["sure_no"],
             ayet_no=r["ayet_no"],
             ayet_metni=r["ayet_metni"],
             kelimeler=kelimeler_by_ayet.get(r["ayet_no"], []),
+            mealler=mealler_by_ayet.get(r["ayet_no"], []),
         )
         for r in ayet_rows
     ]
@@ -1195,11 +1805,10 @@ async def sure_detay(sure_no: int):
 
 @app.get("/ayet/{sure_no}/{ayet_no}", response_model=Ayet)
 async def ayet_detay(sure_no: int, ayet_no: int):
-    """Tek bir ayeti kelime kelime doner (okuma ekraninda tek ayet acmak icin)."""
+    """Tek bir ayeti kelime kelime ve tum mealleriyle doner."""
     async with _pool(app).acquire() as conn:
         ayet_row = await conn.fetchrow(
-            "SELECT sure_no, ayet_no, ayet_metni FROM ayetler "
-            "WHERE sure_no = $1 AND ayet_no = $2",
+            "SELECT sure_no, ayet_no, ayet_metni FROM ayetler WHERE sure_no = $1 AND ayet_no = $2",
             sure_no, ayet_no,
         )
         if not ayet_row:
@@ -1208,6 +1817,12 @@ async def ayet_detay(sure_no: int, ayet_no: int):
         kelime_rows = await conn.fetch(
             "SELECT kelime_id, kelime_no, kelime_metni, kok_id, normalized_root "
             "FROM kelimeler WHERE sure_no = $1 AND ayet_no = $2 ORDER BY kelime_no",
+            sure_no, ayet_no,
+        )
+
+        meal_rows = await conn.fetch(
+            "SELECT yazar_kodu, yazar_adi, meal_metni FROM mealler "
+            "WHERE sure_no = $1 AND ayet_no = $2 ORDER BY meal_id",
             sure_no, ayet_no,
         )
 
@@ -1224,6 +1839,14 @@ async def ayet_detay(sure_no: int, ayet_no: int):
                 normalized_root=r["normalized_root"],
             )
             for r in kelime_rows
+        ],
+        mealler=[
+            Meal(
+                yazar_kodu=r["yazar_kodu"],
+                yazar_adi=r["yazar_adi"],
+                meal_metni=r["meal_metni"],
+            )
+            for r in meal_rows
         ],
     )
 
@@ -1274,8 +1897,8 @@ async def kok_anlami(kok_id: int):
 @app.get("/kok/{kok_id}/ayetler")
 async def kok_gectigi_ayetler(kok_id: int, limit: int = 100, offset: int = 0):
     """
-    Bir kokun Kur'an'da hangi ayetlerde (sure_no, sure_adi, ayet_no, ayet metni),
-    kacar kez gectigini ve vurgulanacak kelimeleri doner.
+    Bir kokun Kur'an'da hangi ayetlerde gectigini, o ayetlerin tum mealleriyle
+    ve vurgulanacak kelimeleriyle birlikte doner.
     """
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
@@ -1285,9 +1908,9 @@ async def kok_gectigi_ayetler(kok_id: int, limit: int = 100, offset: int = 0):
         if not kok_row:
             raise HTTPException(status_code=404, detail="Kok bulunamadi")
 
-        rows = await conn.fetch(
+        ayet_rows = await conn.fetch(
             """
-            SELECT a.sure_no, a.ayet_no, a.ayet_metni, COUNT(*) AS adet,
+            SELECT a.sure_no, a.ayet_no, a.ayet_metni, COUNT(k.kelime_id) AS adet,
                    ARRAY_AGG(k.kelime_metni) AS vurgulu_kelimeler,
                    COUNT(*) OVER() AS toplam_ayet_sayisi
             FROM kelimeler k
@@ -1300,7 +1923,29 @@ async def kok_gectigi_ayetler(kok_id: int, limit: int = 100, offset: int = 0):
             kok_id, limit, offset,
         )
 
-        toplam = rows[0]["toplam_ayet_sayisi"] if rows else 0
+        toplam = ayet_rows[0]["toplam_ayet_sayisi"] if ayet_rows else 0
+
+        mealler_map: dict[tuple[int, int], list[dict]] = {}
+        if ayet_rows:
+            sure_ve_ayetler = [(r["sure_no"], r["ayet_no"]) for r in ayet_rows]
+            meal_rows = await conn.fetch(
+                """
+                SELECT m.sure_no, m.ayet_no, m.yazar_kodu, m.yazar_adi, m.meal_metni
+                FROM mealler m
+                JOIN (SELECT unnest($1::int[]) AS s, unnest($2::int[]) AS a) sub
+                  ON m.sure_no = sub.s AND m.ayet_no = sub.a
+                ORDER BY m.sure_no, m.ayet_no, m.meal_id
+                """,
+                [x[0] for x in sure_ve_ayetler],
+                [x[1] for x in sure_ve_ayetler],
+            )
+            for m in meal_rows:
+                mealler_map.setdefault((m["sure_no"], m["ayet_no"]), []).append({
+                    "yazar_kodu": m["yazar_kodu"],
+                    "yazar_adi": m["yazar_adi"],
+                    "meal_metni": m["meal_metni"],
+                })
+
         return {
             "toplam": toplam,
             "limit": limit,
@@ -1308,12 +1953,13 @@ async def kok_gectigi_ayetler(kok_id: int, limit: int = 100, offset: int = 0):
             "ayetler": [
                 {
                     "sure_no": r["sure_no"],
-                    "sure_adi": SURE_ISIMLERI[r["sure_no"]] if r["sure_no"] < len(SURE_ISIMLERI) else "",
+                    "sure_adi": _sure_adi(app, r["sure_no"]),
                     "ayet_no": r["ayet_no"],
                     "ayet_metni": r["ayet_metni"],
+                    "mealler": mealler_map.get((r["sure_no"], r["ayet_no"]), []),
                     "vurgulu_kelimeler": list(r["vurgulu_kelimeler"]) if r["vurgulu_kelimeler"] else [],
                     "adet": r["adet"],
                 }
-                for r in rows
+                for r in ayet_rows
             ],
         }
