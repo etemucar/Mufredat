@@ -1,858 +1,920 @@
 :root {
-            --primary: #b58941;
-            --primary-light: #fef3c7;
-            --border: #e5e7eb;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f9fafb;
-            color: var(--text-dark);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            direction: ltr;
-        }
-
-        /* 1. Header (Ayetler Panelini Ortalayacak Şekilde Dizayn Edildi) */
-        header {
-            height: 56px;
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            z-index: 10;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .header-ayetler-alan {
-            width: calc(58% + 16px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 32px;
-        }
-
-        .header-nav-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-title-btn {
-            background: none;
-            border: 1px solid transparent;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-dark);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-            user-select: none;
-        }
-
-        .header-title-btn:hover {
-            background: #f8fafc;
-            border-color: var(--border);
-            color: var(--primary);
-        }
-
-        .header-title-btn svg {
-            width: 14px;
-            height: 14px;
-            stroke-width: 2.2;
-            color: var(--text-muted);
-        }
-
-        .nav-btn {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-dark);
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .nav-btn:hover:not(:disabled) {
-            background: #f8fafc;
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .nav-btn svg {
-            width: 16px;
-            height: 16px;
-            stroke-width: 2.2;
-        }
-
-        /* Sol Menü: Kulakçık ve Drawer */
-        .drawer-container {
-            position: fixed;
-            top: 56px;
-            left: 0;
-            height: calc(100vh - 106px);
-            z-index: 999;
-            display: flex;
-            transform: translateX(-310px);
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .drawer-container:hover,
-        .drawer-container.open {
-            transform: translateX(0);
-        }
-
-        .sidebar-drawer {
-            width: 310px;
-            height: 100%;
-            background: #ffffff;
-            border-right: 1px solid var(--border);
-            box-shadow: 4px 0 15px rgba(0,0,0,0.08);
-            overflow-y: auto;
-            padding: 16px 8px;
-        }
-
-        .drawer-tab {
-            width: 32px;
-            height: 100px;
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-left: none;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 3px 0 8px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            margin-top: 20px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--primary);
-            letter-spacing: 1px;
-            user-select: none;
-        }
-
-        .sidebar-drawer h3 {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            padding: 0 12px 8px 12px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 8px;
-        }
-
-        .sure-list-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            gap: 6px;
-            transition: background 0.15s;
-        }
-
-        .sure-list-item:hover {
-            background: #f3f4f6;
-        }
-
-        .sure-list-item.active {
-            background: var(--primary-light);
-            color: #92400e;
-            font-weight: 600;
-        }
-
-        .sure-isim-alani {
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sure-ayet-input {
-            width: 44px;
-            padding: 2px 4px;
-            font-size: 11px;
-            text-align: center;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            outline: none;
-            background: #ffffff;
-            color: var(--text-dark);
-        }
-
-        .sure-ayet-input:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
-
-        .sure-ayet-sayisi {
-            color: var(--text-muted);
-            font-size: 11px;
-            white-space: nowrap;
-            min-width: 48px;
-            text-align: right;
-        }
-
-        /* 2. Masaüstü Yerleşimi: Yan Yana */
-        main {
-            flex: 1;
-            display: flex;
-            height: calc(100vh - 106px);
-            overflow: hidden;
-            margin-left: 32px;
-        }
-
-        .panel-ayetler {
-            width: 58%;
-            padding: 24px 36px;
-            overflow-y: auto;
-            background: #ffffff;
-            border-right: 1px solid var(--border);
-        }
-
-        .ayet-card {
-            margin-bottom: 30px;
-            text-align: center;
-            scroll-margin-top: 20px;
-        }
-
-        .ayet-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            letter-spacing: 0.01em;
-        }
-
-        .arabic-row {
-            direction: rtl;
-            font-family: 'Amiri', serif;
-            font-size: 32px;
-            line-height: 2.2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1px;
-        }
-
-        .ayet-num-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            background: var(--primary);
-            color: white;
-            font-size: 13px;
-            font-weight: 700;
-            border-radius: 50%;
-            font-family: 'Inter', sans-serif;
-            user-select: none;
-            margin-right: 6px;
-        }
-
-        .kelime-token {
-            position: relative;
-            cursor: default;
-            padding: 2px 3px;
-            border-radius: 6px;
-            transition: all 0.15s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .kelime-token.has-kok {
-            cursor: pointer;
-        }
-
-        .kelime-token.has-kok:hover,
-        .kelime-token.selected {
-            background-color: var(--primary-light);
-            color: #92400e;
-        }
-
-        /* 3. Meal Kutusu: align-items: flex-start İle Üste Sabitlendi */
-        .ayet-meal-box {
-            margin-top: 14px;
-            padding: 10px 16px;
-            background: #fbfbfb;
-            border-left: 3px solid var(--primary);
-            border-radius: 0 6px 6px 0;
-            display: flex;
-            align-items: flex-start; /* Metin uzasa da butonlar yukarıda sabit kalır */
-            justify-content: space-between;
-            gap: 16px;
-            font-size: 15px;
-            line-height: 1.6;
-            color: #4b5563;
-        }
-
-        .ayet-meal-sol {
-            flex-shrink: 0;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            text-align: left;
-            min-width: 100px;
-            cursor: pointer;
-            user-select: none;
-            padding: 2px 4px;
-            border-radius: 4px;
-            transition: background 0.15s;
-        }
-
-        .ayet-meal-sol:hover {
-            background: var(--primary-light);
-            color: #92400e;
-        }
-
-        .ayet-meal-orta {
-            flex: 1;
-            text-align: center;
-            color: #374151;
-            padding-top: 1px;
-        }
-
-        .ayet-meal-sag {
-            flex-shrink: 0;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
-            padding-top: 1px;
-        }
-
-        .meal-sayac-inline {
-            font-size: 10px;
-            color: var(--text-muted);
-            min-width: 28px;
-            text-align: center;
-        }
-
-        .meal-nav-btn {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 2px 7px;
-            font-size: 11px;
-            cursor: pointer;
-            color: var(--text-dark);
-            transition: all 0.15s;
-        }
-
-        .meal-nav-btn:hover {
-            background: #f3f4f6;
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        /* 4. Çiçekli / Sarmaşık Motifli Ayraç */
-        .ayet-floral-divider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 28px auto 8px auto;
-            width: 100%;
-            max-width: 520px;
-            opacity: 0.85;
-            user-select: none;
-        }
-
-        .ayet-floral-divider svg {
-            width: 100%;
-            height: 28px;
-            fill: none;
-            stroke: #2b2b2b;
-            stroke-width: 1.2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        .panel-mufredat {
-            width: 42%;
-            background: #fafafa;
-            padding: 24px;
-            overflow-y: auto;
-        }
-
-        .mufredat-card {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            background: #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            min-height: 180px;
-        }
-
-        .mufredat-header {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 6px;
-        }
-
-        .mufredat-header.tiklanabilir {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .mufredat-header.tiklanabilir:hover {
-            color: #92400e;
-            text-decoration: underline;
-        }
-
-        .mufredat-header .kok-ipucu {
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--text-muted);
-            text-decoration: none;
-            white-space: nowrap;
-        }
-
-        .kok-vurgulu {
-            background-color: #fef08a !important;
-            color: #dc2626 !important;
-            padding: 1px 5px !important;
-            border-radius: 4px !important;
-            font-weight: 700 !important;
-        }
-
-        /* Hızlı Sûre Seçici Modal */
-        .sure-secici-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(17, 24, 39, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2100;
-            padding: 20px;
-        }
-
-        .sure-secici-backdrop.acik {
-            display: flex;
-        }
-
-        .sure-secici-modal {
-            background: #ffffff;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
-            max-height: 75vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .sure-secici-header {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: #fbfbfb;
-        }
-
-        .sure-secici-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .sure-secici-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(181, 137, 65, 0.15);
-        }
-
-        .sure-secici-liste {
-            overflow-y: auto;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .sure-secici-item {
-            padding: 9px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.15s;
-        }
-
-        .sure-secici-item:hover,
-        .sure-secici-item.secili {
-            background: var(--primary-light);
-            color: #92400e;
-            font-weight: 600;
-        }
-
-        /* Meal Seçici Modal */
-        .meal-secici-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(17, 24, 39, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2200;
-            padding: 20px;
-        }
-
-        .meal-secici-backdrop.acik {
-            display: flex;
-        }
-
-        .meal-secici-modal {
-            background: #ffffff;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 360px;
-            max-height: 70vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .meal-secici-header {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fbfbfb;
-        }
-
-        .meal-secici-liste {
-            overflow-y: auto;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .meal-secici-item {
-            padding: 10px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.15s;
-        }
-
-        .meal-secici-item:hover,
-        .meal-secici-item.secili {
-            background: var(--primary-light);
-            color: #92400e;
-            font-weight: 600;
-        }
-
-        /* Kok modal */
-        .kok-modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(17, 24, 39, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 20px;
-        }
-
-        .kok-modal-backdrop.acik {
-            display: flex;
-        }
-
-        .kok-modal {
-            background: #ffffff;
-            border-radius: 10px;
-            width: 100%;
-            max-width: 500px;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .kok-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .kok-modal-header h4 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .kok-modal-kapat {
-            background: none;
-            border: none;
-            font-size: 20px;
-            line-height: 1;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 4px;
-        }
-
-        .kok-modal-kapat:hover {
-            color: var(--text-dark);
-        }
-
-        .kok-modal-body {
-            overflow-y: auto;
-            padding: 8px;
-        }
-
-        .kok-ayet-item {
-            padding: 12px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
-            transition: background 0.15s;
-        }
-
-        .kok-ayet-item:last-child {
-            border-bottom: none;
-        }
-
-        .kok-ayet-item:hover {
-            background: #f8fafc;
-        }
-
-        .kok-ayet-ust {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .kok-ayet-badge {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .adet-badge {
-            font-size: 11px;
-            color: var(--text-muted);
-            background: #f3f4f6;
-            border-radius: 999px;
-            padding: 2px 8px;
-        }
-
-        .kok-ayet-metin {
-            font-family: 'Amiri', serif;
-            font-size: 19px;
-            line-height: 1.8;
-            direction: rtl;
-            text-align: right;
-            color: #374151;
-            margin-bottom: 6px;
-        }
-
-        .kok-daha-fazla {
-            display: block;
-            width: calc(100% - 16px);
-            margin: 8px;
-            padding: 10px;
-            background: #f3f4f6;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            color: var(--text-dark);
-        }
-
-        .kok-daha-fazla:hover {
-            background: #e5e7eb;
-        }
-
-        .kok-modal-durum {
-            padding: 20px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .mufredat-body {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #374151;
-        }
-
-        .mufredat-body p {
-            margin-bottom: 10px;
-        }
-
-        .mufredat-body .arabi {
-            font-family: 'Amiri', serif;
-            font-size: 19px;
-            direction: rtl;
-            unicode-bidi: isolate;
-            color: #111827;
-            padding: 0 4px;
-            font-weight: 600;
-        }
-
-        /* 5. Footer */
-        footer {
-            height: 50px;
-            background: #ffffff;
-            border-top: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 0 16px;
-            z-index: 10;
-            flex-shrink: 0;
-        }
-
-        .goto-form {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-        }
-
-        .goto-input {
-            width: 70px;
-            padding: 5px 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 13px;
-            text-align: center;
-            outline: none;
-        }
-
-        .goto-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        /* Mobil Düzen */
-        @media (max-width: 768px) {
-            header {
-                justify-content: center;
-            }
-            .header-ayetler-alan {
-                width: 100%;
-                margin-left: 0;
-            }
-
-            main {
-                flex-direction: column;
-                margin-left: 0;
-            }
-
-            .panel-ayetler {
-                width: 100%;
-                height: 55%;
-                padding: 16px 18px;
-                border-right: none;
-                border-bottom: 2px solid var(--border);
-            }
-
-            .arabic-row {
-                font-size: 26px;
-                line-height: 2.1;
-                gap: 1px;
-            }
-
-            .ayet-meal-box {
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-                text-align: center;
-            }
-            .ayet-meal-sol, .ayet-meal-sag {
-                align-self: center;
-            }
-
-            .panel-mufredat {
-                width: 100%;
-                height: 45%;
-                padding: 14px 16px;
-                background: #ffffff;
-            }
-
-            .mufredat-card {
-                padding: 14px;
-                min-height: auto;
-                height: 100%;
-                overflow-y: auto;
-                border: 1px solid #e2e8f0;
-            }
-
-            .drawer-container {
-                top: 56px;
-                height: calc(100vh - 106px);
-                transform: translateX(-310px);
-            }
-
-            .drawer-tab {
-                width: 26px;
-                height: 80px;
-                font-size: 10px;
-            }
-        }
+    --primary: #b58941;
+    --primary-light: #fef3c7;
+    --border: #e5e7eb;
+    --text-dark: #1f2937;
+    --text-muted: #6b7280;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f9fafb;
+    color: var(--text-dark);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    direction: ltr;
+}
+
+/* 1. Header */
+header {
+    height: 56px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.header-ayetler-alan {
+    width: calc(58% + 16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 32px;
+}
+
+.header-nav-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-title-btn {
+    background: none;
+    border: 1px solid transparent;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.header-title-btn:hover {
+    background: #f8fafc;
+    border-color: var(--border);
+    color: var(--primary);
+}
+
+.header-title-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.2;
+    color: var(--text-muted);
+}
+
+.nav-btn {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.nav-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.2;
+}
+
+/* Sol Menü: Kulakçık ve Drawer */
+.drawer-container {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    height: calc(100vh - 106px);
+    z-index: 999;
+    display: flex;
+    transform: translateX(-310px);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer-container:hover,
+.drawer-container.open {
+    transform: translateX(0);
+}
+
+.sidebar-drawer {
+    width: 310px;
+    height: 100%;
+    background: #ffffff;
+    border-right: 1px solid var(--border);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.08);
+    overflow-y: auto;
+    padding: 16px 8px;
+}
+
+.drawer-tab {
+    width: 32px;
+    height: 100px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 3px 0 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-top: 20px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: 1px;
+    user-select: none;
+}
+
+.sidebar-drawer h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0 12px 8px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.sure-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    gap: 6px;
+    transition: background 0.15s;
+}
+
+.sure-list-item:hover {
+    background: #f3f4f6;
+}
+
+.sure-list-item.active {
+    background: var(--primary-light);
+    color: #92400e;
+    font-weight: 600;
+}
+
+.sure-isim-alani {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sure-ayet-input {
+    width: 44px;
+    padding: 2px 4px;
+    font-size: 11px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+    background: #ffffff;
+    color: var(--text-dark);
+}
+
+.sure-ayet-input:focus {
+    border-color: var(--primary);
+    background: #fff;
+}
+
+.sure-ayet-sayisi {
+    color: var(--text-muted);
+    font-size: 11px;
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: right;
+}
+
+/* 2. Masaüstü Yerleşimi */
+main {
+    flex: 1;
+    display: flex;
+    height: calc(100vh - 106px);
+    overflow: hidden;
+    margin-left: 32px;
+}
+
+.panel-ayetler {
+    width: 58%;
+    padding: 24px 36px;
+    overflow-y: auto;
+    background: #ffffff;
+    border-right: 1px solid var(--border);
+}
+
+.ayet-card {
+    margin-bottom: 30px;
+    text-align: center;
+    scroll-margin-top: 20px;
+    position: relative;
+    padding: 10px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+/* Sticky Note İkonu */
+.ayet-note-trigger {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    color: #9ca3af;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.ayet-card:hover .ayet-note-trigger,
+.ayet-card.is-active .ayet-note-trigger,
+.ayet-note-trigger.has-note {
+    opacity: 1;
+}
+
+.ayet-note-trigger:hover {
+    background: #f3f4f6;
+    color: var(--text-dark);
+}
+
+.ayet-note-trigger.has-note {
+    color: var(--primary);
+}
+
+.ayet-note-trigger svg {
+    width: 19px;
+    height: 19px;
+}
+
+.ayet-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.01em;
+}
+
+.arabic-row {
+    direction: rtl;
+    font-family: 'Amiri', serif;
+    font-size: 32px;
+    line-height: 2.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1px;
+}
+
+.ayet-num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 50%;
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+    margin-right: 6px;
+}
+
+.kelime-token {
+    position: relative;
+    cursor: default;
+    padding: 2px 3px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.kelime-token.has-kok {
+    cursor: pointer;
+}
+
+.kelime-token.has-kok:hover,
+.kelime-token.selected {
+    background-color: var(--primary-light);
+    color: #92400e;
+}
+
+/* 3. Meal Kutusu */
+.ayet-meal-box {
+    margin-top: 14px;
+    padding: 10px 16px;
+    background: #fbfbfb;
+    border-left: 3px solid var(--primary);
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+.ayet-meal-sol {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    min-width: 100px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.ayet-meal-sol:hover {
+    background: var(--primary-light);
+    color: #92400e;
+}
+
+.ayet-meal-orta {
+    flex: 1;
+    text-align: center;
+    color: #374151;
+    padding-top: 1px;
+}
+
+.ayet-meal-sag {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    padding-top: 1px;
+}
+
+.meal-sayac-inline {
+    font-size: 10px;
+    color: var(--text-muted);
+    min-width: 28px;
+    text-align: center;
+}
+
+.meal-nav-btn {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: all 0.15s;
+}
+
+.meal-nav-btn:hover {
+    background: #f3f4f6;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* 4. Çiçekli / Sarmaşık Motifli Ayraç */
+.ayet-floral-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 28px auto 8px auto;
+    width: 100%;
+    max-width: 520px;
+    opacity: 0.85;
+    user-select: none;
+}
+
+.ayet-floral-divider svg {
+    width: 100%;
+    height: 28px;
+    fill: none;
+    stroke: #2b2b2b;
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.panel-mufredat {
+    width: 42%;
+    background: #fafafa;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.mufredat-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    min-height: 180px;
+}
+
+.mufredat-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+}
+
+.mufredat-header.tiklanabilir {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mufredat-header.tiklanabilir:hover {
+    color: #92400e;
+    text-decoration: underline;
+}
+
+.mufredat-header .kok-ipucu {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.kok-vurgulu {
+    background-color: #fef08a !important;
+    color: #dc2626 !important;
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+    font-weight: 700 !important;
+}
+
+/* Modal Stilleri */
+.sure-secici-backdrop,
+.meal-secici-backdrop,
+.not-modal-backdrop,
+.kok-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2100;
+    padding: 20px;
+}
+
+.sure-secici-backdrop.acik,
+.meal-secici-backdrop.acik,
+.not-modal-backdrop.acik,
+.kok-modal-backdrop.acik {
+    display: flex;
+}
+
+.sure-secici-modal,
+.meal-secici-modal,
+.not-modal,
+.kok-modal {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.sure-secici-header,
+.meal-secici-header,
+.not-modal-header,
+.kok-modal-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fbfbfb;
+    flex-shrink: 0;
+}
+
+.sure-secici-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.sure-secici-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(181, 137, 65, 0.15);
+}
+
+.sure-secici-liste,
+.meal-secici-liste,
+.kok-modal-body {
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sure-secici-item {
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.sure-secici-item:hover,
+.sure-secici-item.secili {
+    background: var(--primary-light);
+    color: #92400e;
+    font-weight: 600;
+}
+
+/* Meal Seçici Filtre */
+.meal-filtre-kontrol {
+    padding: 10px 18px;
+    background: #f3f4f6;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.meal-filtre-kontrol label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.meal-secici-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.meal-secici-row:hover {
+    background: #f9fafb;
+}
+
+.meal-secici-row input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+}
+
+.meal-secici-footer {
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    background: #fbfbfb;
+}
+
+.btn-primary-mini {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary-mini:hover {
+    opacity: 0.9;
+}
+
+/* Not Modalı Gövdesi */
+.not-modal-body {
+    padding: 16px;
+}
+
+.not-modal-body textarea {
+    width: 100%;
+    height: 150px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    resize: none;
+}
+
+.not-modal-body textarea:focus {
+    border-color: var(--primary);
+}
+
+.not-modal-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    background: #fbfbfb;
+}
+
+.not-btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #ffffff;
+}
+
+.not-btn:hover {
+    background: #f3f4f6;
+}
+
+.not-btn-kaydet {
+    background: var(--primary);
+    color: #ffffff;
+    border: 1px solid var(--primary);
+}
+
+.not-btn-kaydet:hover {
+    opacity: 0.9;
+}
+
+.not-btn-sil {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.not-btn-sil:hover {
+    background: #fee2e2;
+}
+
+.kok-modal-kapat {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+}
+
+.kok-ayet-item {
+    padding: 12px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.15s;
+}
+
+.kok-ayet-item:last-child {
+    border-bottom: none;
+}
+
+.kok-ayet-item:hover {
+    background: #f8fafc;
+}
+
+.kok-ayet-ust {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.kok-ayet-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.adet-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: #f3f4f6;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.kok-ayet-metin {
+    font-family: 'Amiri', serif;
+    font-size: 19px;
+    line-height: 1.8;
+    direction: rtl;
+    text-align: right;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.kok-daha-fazla {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 8px;
+    padding: 10px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dark);
+}
+
+.kok-modal-durum {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.mufredat-body {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #374151;
+}
+
+.mufredat-body p {
+    margin-bottom: 10px;
+}
+
+.mufredat-body .arabi {
+    font-family: 'Amiri', serif;
+    font-size: 19px;
+    direction: rtl;
+    unicode-bidi: isolate;
+    color: #111827;
+    padding: 0 4px;
+    font-weight: 600;
+}
+
+/* 5. Footer */
+footer {
+    height: 50px;
+    background: #ffffff;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 16px;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.goto-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.goto-input {
+    width: 70px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+}
+
+.goto-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+/* Mobil Düzen */
+@media (max-width: 768px) {
+    header {
+        justify-content: center;
+    }
+    .header-ayetler-alan {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    main {
+        flex-direction: column;
+        margin-left: 0;
+    }
+
+    .panel-ayetler {
+        width: 100%;
+        height: 55%;
+        padding: 16px 18px;
+        border-right: none;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .arabic-row {
+        font-size: 26px;
+        line-height: 2.1;
+        gap: 1px;
+    }
+
+    .ayet-meal-box {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-align: center;
+    }
+    .ayet-meal-sol, .ayet-meal-sag {
+        align-self: center;
+    }
+
+    .panel-mufredat {
+        width: 100%;
+        height: 45%;
+        padding: 14px 16px;
+        background: #ffffff;
+    }
+
+    .mufredat-card {
+        padding: 14px;
+        min-height: auto;
+        height: 100%;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+    }
+
+    .drawer-container {
+        top: 56px;
+        height: calc(100vh - 106px);
+        transform: translateX(-310px);
+    }
+
+    .drawer-tab {
+        width: 26px;
+        height: 80px;
+        font-size: 10px;
+    }
+}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Görüş ve Öneriler — Kur'an Ehli</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #b58941;
+            --primary-hover: #9a7332;
+            --text-main: #27272a;
+            --text-muted: #71717a;
+            --border: #e7e5e4;
+            --bg-body: #fafaf9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 580px;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 36px 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .desc {
+            font-size: 14.5px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14.5px;
+            color: var(--text-main);
+            outline: none;
+            resize: vertical;
+            line-height: 1.6;
+            background: #fafaf9;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+        }
+
+        .back-link {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: var(--text-main);
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-hover);
+        }
+
+        .success-box {
+            display: none;
+            padding: 16px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            border-radius: 8px;
+            font-size: 14.5px;
+            text-align: center;
+            margin-top: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Görüş ve Öneriler</h2>
+        <p class="desc">
+            Çalışmamızı geliştirmemize yardımcı olacak her türlü görüş, öneri ve hata bildirimlerinizi bizimle paylaştığınız için teşekkür ederiz.
+        </p>
+
+        <form id="oneriForm" onsubmit="gonderOneri(event)">
+            <textarea id="mesaj" placeholder="Düşüncelerinizi buraya yazabilirsiniz..." required></textarea>
+            
+            <div class="action-row">
+                <a href="/oku" class="back-link">← Kur'an Okumaya Dön</a>
+                <button type="submit" class="btn-submit" id="btnGonder">Gönder</button>
+            </div>
+        </form>
+
+        <div id="basariKutusu" class="success-box">
+            Görüşünüz iletildi, Kur'an çalışmalarınızda başarılar dileriz...
+        </div>
+    </div>
+
+    <script>
+        async function gonderOneri(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnGonder');
+            const mesaj = document.getElementById('mesaj').value.trim();
+            if (!mesaj) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Gönderiliyor...';
+
+            try {
+                const res = await fetch('/api/oneri', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mesaj: mesaj })
+                });
+
+                if (res.ok) {
+                    document.getElementById('oneriForm').style.display = 'none';
+                    document.getElementById('basariKutusu').style.display = 'block';
+                } else {
+                    alert('Gönderilirken bir sorun oluştu. Lütfen tekrar deneyin.');
+                    btn.disabled = false;
+                    btn.textContent = 'Gönder';
+                }
+            } catch (err) {
+                alert('Bağlantı hatası oluştu.');
+                btn.disabled = false;
+                btn.textContent = 'Gönder';
+            }
+        }
+    </script>
+</body>
+</html>

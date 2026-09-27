@@ -74,14 +74,43 @@
         </div>
     </div>
 
-    <!-- Genel Meal Seçim Modalı (Uzun Basınca Açılır) -->
+    <!-- Meal Seçim ve Filtreleme Modalı -->
     <div id="meal-secici-backdrop" class="meal-secici-backdrop" onclick="if(event.target===this) kapatMealSeciciModal()">
         <div class="meal-secici-modal">
             <div class="meal-secici-header">
-                <span style="font-weight:700; font-size:15px;">Varsayılan Meali Seçin</span>
+                <span style="font-weight:700; font-size:15px;">Görüntülenecek Mealleri Seçin</span>
                 <button class="kok-modal-kapat" onclick="kapatMealSeciciModal()">&times;</button>
             </div>
+            <div class="meal-filtre-kontrol">
+                <label>
+                    <input type="checkbox" id="hepsini-sec-checkbox" onchange="toggleTumMealler(this.checked)">
+                    <span id="hepsini-sec-label">Tümünü Seç / Kaldır</span>
+                </label>
+            </div>
             <div id="meal-secici-liste" class="meal-secici-liste"></div>
+            <div class="meal-secici-footer">
+                <button class="btn-primary-mini" onclick="kapatMealSeciciModal()">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Not Ekleme / Düzenleme Modalı -->
+    <div id="not-modal-backdrop" class="not-modal-backdrop" onclick="if(event.target===this) kapatNotModal()">
+        <div class="not-modal">
+            <div class="not-modal-header">
+                <h4 id="not-modal-baslik">Ayet Notu</h4>
+                <button class="kok-modal-kapat" onclick="kapatNotModal()">&times;</button>
+            </div>
+            <div class="not-modal-body">
+                <textarea id="not-metin-input" placeholder="Bu ayetle ilgili notlarınızı buraya yazabilirsiniz..."></textarea>
+            </div>
+            <div class="not-modal-footer">
+                <button class="not-btn not-btn-sil" id="not-sil-btn" onclick="notuSil()">Notu Sil</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="not-btn" onclick="kapatNotModal()">Vazgeç</button>
+                    <button class="not-btn not-btn-kaydet" onclick="notuKaydet()">Kaydet</button>
+                </div>
+            </div>
         </div>
     </div>
 

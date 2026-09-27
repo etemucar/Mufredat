@@ -2,19 +2,22 @@
 Kur'an okuma API'si - kelimeye dokununca kok anlamini gostermek icin.
 
 Calistirma:
-    $env:DATABASE_URL="postgresql://db_owner:SIFRENIZ@ep-...aws.neon.tech/kuran?sslmode=require"
-    uvicorn main_2:app --reload
+    uvicorn main:app --reload
 """
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
 import asyncpg
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+# .env dosyasındaki ortam değişkenlerini yükler
+load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -30,6 +33,16 @@ async def lifespan(app: FastAPI):
     app.state.sure_isimleri = {}
     try:
         async with app.state.pool.acquire() as conn:
+            # Gorus ve oneriler tablosunu otomatik olustur
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS oneriler (
+                    oneri_id SERIAL PRIMARY KEY,
+                    mesaj TEXT NOT NULL,
+                    tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
             rows = await conn.fetch("SELECT sure_no, sure_adi FROM sureler")
             app.state.sure_isimleri = {r["sure_no"]: r["sure_adi"] for r in rows}
         if not app.state.sure_isimleri:
@@ -55,8 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Statik dosyalar (CSS/JS) ve HTML sayfası artik burada, Python string'i icinde degil:
-#   static/css/style.css, static/js/app.js, templates/index.html
+# Statik dosyalar (CSS/JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -95,19 +107,48 @@ class KelimeDetay(BaseModel):
     kok: Optional[KokAnlami] = None
 
 
+class OneriRequest(BaseModel):
+    mesaj: str
+
+
 # ---------- Yardimci ----------
 
 def _pool(app: FastAPI):
     return app.state.pool
 
 
-# ---------- Endpointler ----------
+# ---------- Sayfa Yönlendirmeleri ----------
 
 @app.get("/")
 async def ana_sayfa():
-    """Masaüstü ve mobil uyumlu Kur'an & Müfredat arayüzü (templates/index.html)."""
+    """Tanıtım ve sade karşılama sayfası."""
+    return FileResponse("templates/home.html")
+
+
+@app.get("/oku")
+async def okuma_sayfasi():
+    """Masaüstü ve mobil uyumlu Kur'an & Müfredat arayüzü."""
     return FileResponse("templates/index.html")
 
+
+@app.get("/oneri")
+async def oneri_sayfasi():
+    """Görüş ve öneri formu sayfası."""
+    return FileResponse("templates/oneri.html")
+
+
+# ---------- API Endpointleri ----------
+
+@app.post("/api/oneri")
+async def oneri_kaydet(talep: OneriRequest):
+    """Kullanıcının gönderdiği görüş ve önerileri veritabanına kaydeder."""
+    metin = talep.mesaj.strip()
+    if not metin:
+        raise HTTPException(status_code=400, detail="Mesaj boş olamaz.")
+
+    async with _pool(app).acquire() as conn:
+        await conn.execute("INSERT INTO oneriler (mesaj) VALUES ($1)", metin)
+    return {"durum": "tamam"}
 
 
 @app.get("/suraler")
