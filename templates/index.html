@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kur'an-ı Kerim & Müfredat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Header (Sûre Başlığı Sol Ayet Alanını Ortalar) -->
+    <header>
+        <div class="header-ayetler-alan">
+            <div class="header-nav-group">
+                <button id="prev-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo - 1)" title="Önceki Sûre">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button id="header-sure-btn" class="header-title-btn" onclick="acSureSeciciModal()" title="Sûre Seçmek veya Aramak İçin Tıklayın">
+                    <span id="header-sure-title">Yükleniyor...</span>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <button id="next-btn" class="nav-btn" onclick="degistirSure(mevcutSureNo + 1)" title="Sonraki Sûre">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sol Menü: Kulakçık ve Drawer -->
+    <div id="drawer-container" class="drawer-container">
+        <div id="sidebar-drawer" class="sidebar-drawer">
+            <h3>Sûreler</h3>
+            <div id="sure-list">Yükleniyor...</div>
+        </div>
+        <div class="drawer-tab" onclick="toggleDrawer()">☰ SÛRELER</div>
+    </div>
+
+    <!-- İki Bölmeli Ana Alan -->
+    <main>
+        <!-- SOL/ÜST PANEL: Ayetler -->
+        <section class="panel-ayetler" id="panel-ayetler">
+            <div id="ayetler-container">Yükleniyor...</div>
+        </section>
+
+        <!-- SAĞ/ALT PANEL: Müfredat -->
+        <section class="panel-mufredat" id="panel-mufredat">
+            <div class="mufredat-card">
+                <div id="mufredat-title" class="mufredat-header">Müfredat</div>
+                <div id="mufredat-desc" class="mufredat-body">
+                    İncelemek istediğiniz kelimenin kök anlamını görmek için ayetlerden bir kelimeye gelin/dokunun.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Hızlı Sûre Arama & Seçim Modalı -->
+    <div id="sure-secici-backdrop" class="sure-secici-backdrop" onclick="if(event.target===this) kapatSureSeciciModal()">
+        <div class="sure-secici-modal">
+            <div class="sure-secici-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700; font-size:15px;">Sûre Seç veya Ara</span>
+                    <button class="kok-modal-kapat" onclick="kapatSureSeciciModal()">&times;</button>
+                </div>
+                <input type="text" id="sure-arama-input" class="sure-secici-input" placeholder="Sûre adı veya numarası yazın..." oninput="filtreleSureler(this.value)" onkeydown="sureAramaKeydown(event)">
+            </div>
+            <div id="sure-secici-liste" class="sure-secici-liste"></div>
+        </div>
+    </div>
+
+    <!-- Genel Meal Seçim Modalı (Uzun Basınca Açılır) -->
+    <div id="meal-secici-backdrop" class="meal-secici-backdrop" onclick="if(event.target===this) kapatMealSeciciModal()">
+        <div class="meal-secici-modal">
+            <div class="meal-secici-header">
+                <span style="font-weight:700; font-size:15px;">Varsayılan Meali Seçin</span>
+                <button class="kok-modal-kapat" onclick="kapatMealSeciciModal()">&times;</button>
+            </div>
+            <div id="meal-secici-liste" class="meal-secici-liste"></div>
+        </div>
+    </div>
+
+    <!-- Kökün geçtiği sûreler modalı -->
+    <div id="kok-modal-backdrop" class="kok-modal-backdrop" onclick="if(event.target===this) kapatKokModal()">
+        <div class="kok-modal">
+            <div class="kok-modal-header">
+                <h4 id="kok-modal-baslik">Kök</h4>
+                <button class="kok-modal-kapat" onclick="kapatKokModal()" aria-label="Kapat">&times;</button>
+            </div>
+            <div id="kok-modal-body" class="kok-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Footer: Ayete Atlama -->
+    <footer>
+        <form class="goto-form" onsubmit="handleGotoAyet(event)">
+            <label for="ayet-input">Ayet No:</label>
+            <input type="number" id="ayet-input" class="goto-input" min="1" placeholder="Ayet No" required>
+            <button type="submit" class="goto-btn">Git</button>
+        </form>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
