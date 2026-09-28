@@ -1091,3 +1091,35 @@ footer {
 .meal-boyut-popover .boyut-yuzde:hover {
     color: var(--primary);
 }
+
+/* Mobil: meal gezinme düğmeleri ve sayaç parmakla rahat basılacak boyutta */
+@media (max-width: 768px) {
+    .ayet-meal-sag {
+        gap: 10px;
+    }
+
+    .meal-nav-btn {
+        min-width: 44px;
+        height: 40px;
+        padding: 0 12px;
+        font-size: 22px;
+        line-height: 1;
+        border-radius: 8px;
+    }
+
+    .meal-sayac-inline {
+        min-width: 52px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .meal-zoom-btn {
+        padding: 0 12px;
+    }
+
+    .meal-zoom-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+}
