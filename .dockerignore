@@ -1,0 +1,23 @@
+# Gizli bilgiler imaja girmesin (DATABASE_URL'i Coolify ortam değişkenlerinden ver)
+.env
+.env.*
+
+# Sürüm kontrolü / editör
+.git
+.gitignore
+.vscode/
+.idea/
+
+# Python artıkları
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Yerel SQLite veritabanları (uygulama Postgres kullanıyor)
+*.db
+*.sqlite3
+
+# Docker dosyalarının kendisi
+Dockerfile
+.dockerignore

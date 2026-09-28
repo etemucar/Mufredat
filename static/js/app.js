@@ -32,6 +32,23 @@ try {
 
 let duzenlenenAyetKey = null;
 
+// 4. LocalStorage: Türkçe meal yazı boyutu çarpanı
+const MEAL_OLCEK_MIN = 0.8;
+const MEAL_OLCEK_MAX = 1.8;
+let mealOlcek = 1;
+try {
+    const kayitliOlcek = parseFloat(localStorage.getItem('meal_olcek'));
+    if (kayitliOlcek >= MEAL_OLCEK_MIN && kayitliOlcek <= MEAL_OLCEK_MAX) mealOlcek = kayitliOlcek;
+} catch (e) { /* varsayılan */ }
+document.documentElement.style.setProperty('--meal-olcek', mealOlcek);
+
+// SVG: Büyüteç
+const MEAL_ZOOM_ICON = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="7"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+</svg>`;
+
 // SVG: Boş Not İkonu
 const NOTE_ICON_EMPTY = `
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -47,37 +64,10 @@ const NOTE_ICON_FILLED = `
     <path d="M19.41 7.41l-4.83-4.83C14.21 2.21 13.7 2 13.17 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8.83c0-.53-.21-1.04-.59-1.42zM13 3.5L18.5 9H13V3.5zM8 12h8v2H8v-2zm8 5H8v-2h8v2z"/>
 </svg>`;
 
-// Vektörel Çiçekli / Kıvrımlı Ayraç SVG Şablonu
-const FLORAL_DIVIDER_HTML = `
-    <div class="ayet-floral-divider">
-        <svg viewBox="0 0 600 50">
-            <line x1="20" y1="25" x2="190" y2="25" stroke="#1f2937" stroke-width="1.2" />
-            <path d="M 195 25 Q 235 5 280 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
-            <path d="M 215 17 Q 210 9 220 12 C 228 15 220 22 215 17 Z" fill="#2b2b2b" />
-            <path d="M 245 13 Q 248 5 256 9 C 260 14 252 20 245 13 Z" fill="#2b2b2b" />
-            <g transform="translate(250, 27) scale(0.65)">
-                <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
-                <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
-                <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
-            </g>
-            <path d="M 270 12 C 270 34, 330 34, 330 12" fill="none" stroke="#1f2937" stroke-width="1.8" />
-            <g transform="translate(300, 10) scale(0.7)">
-                <path d="M 0 0 C -12 -18, 12 -18, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
-                <path d="M -5 -4 C -22 -10, -15 -25, -2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
-                <path d="M 5 -4 C 22 -10, 15 -25, 2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
-            </g>
-            <path d="M 320 25 Q 365 5 405 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
-            <path d="M 355 13 Q 352 5 344 9 C 340 14 348 20 355 13 Z" fill="#2b2b2b" />
-            <path d="M 385 17 Q 390 9 380 12 C 372 15 380 22 385 17 Z" fill="#2b2b2b" />
-            <g transform="translate(350, 27) scale(0.65)">
-                <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
-                <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
-                <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
-            </g>
-            <line x1="410" y1="25" x2="580" y2="25" stroke="#1f2937" stroke-width="1.2" />
-        </svg>
-    </div>
-`;
+// Vektörel Çiçekli / Kıvrımlı Ayraç: şekiller index.html içindeki <symbol id="floral"> tanımında.
+// Her ayet yalnızca hafif bir <use> referansı taşır (binlerce DOM düğümü tasarrufu).
+const FLORAL_DIVIDER_HTML =
+    '<div class="ayet-floral-divider"><svg viewBox="0 0 600 50" aria-hidden="true"><use href="#floral"></use></svg></div>';
 
 async function init() {
     await fetchSureler();
@@ -250,14 +240,15 @@ function acMealSeciciModal() {
             }
             localStorage.setItem('aktif_mealler', JSON.stringify(aktifMealler));
             guncelleHepsiniSecCheckbox(tumKodlar);
-            renderAyetler(mevcutAyetlerVerisi);
+            mealKutulariniYenile();
         };
 
         const span = document.createElement('span');
         span.textContent = yazarlarMap[kod];
 
-        label.appendChild(chk);
+        // Onay kutusu sağda (popup'ın sağ kenarına dayalı)
         label.appendChild(span);
+        label.appendChild(chk);
         liste.appendChild(label);
     });
 
@@ -280,7 +271,7 @@ function toggleTumMealler(seciliOlsunMu) {
     }
     tumCheckboxlar.forEach(c => c.checked = seciliOlsunMu);
     localStorage.setItem('aktif_mealler', JSON.stringify(aktifMealler));
-    renderAyetler(mevcutAyetlerVerisi);
+    mealKutulariniYenile();
 }
 
 function kapatMealSeciciModal() {
@@ -311,26 +302,43 @@ function kapatNotModal() {
     duzenlenenAyetKey = null;
 }
 
+// Not ikonunun görünümünü (dolu/boş) ayarlar
+function notButonuDurumu(btn, hasNote) {
+    btn.className = 'ayet-note-trigger' + (hasNote ? ' has-note' : '');
+    btn.title = hasNote ? 'Notu Görüntüle / Düzenle' : 'Bu Ayete Not Ekle';
+    btn.innerHTML = hasNote ? NOTE_ICON_FILLED : NOTE_ICON_EMPTY;
+}
+
+// Tüm listeyi yeniden çizmek yerine yalnızca ilgili ayetin not ikonunu günceller
+function notButonunuGuncelle(key) {
+    const [sureNo, ayetNo] = key.split(':').map(Number);
+    if (sureNo !== mevcutSureNo) return;
+    const btn = document.querySelector(`#ayet-${ayetNo} > .ayet-note-trigger`);
+    if (btn) notButonuDurumu(btn, Boolean(ayetNotlari[key]));
+}
+
 function notuKaydet() {
     if (!duzenlenenAyetKey) return;
+    const key = duzenlenenAyetKey;
     const metin = document.getElementById('not-metin-input').value.trim();
 
     if (metin) {
-        ayetNotlari[duzenlenenAyetKey] = metin;
+        ayetNotlari[key] = metin;
     } else {
-        delete ayetNotlari[duzenlenenAyetKey];
+        delete ayetNotlari[key];
     }
     localStorage.setItem('ayet_notlari', JSON.stringify(ayetNotlari));
     kapatNotModal();
-    renderAyetler(mevcutAyetlerVerisi);
+    notButonunuGuncelle(key);
 }
 
 function notuSil() {
     if (!duzenlenenAyetKey) return;
-    delete ayetNotlari[duzenlenenAyetKey];
+    const key = duzenlenenAyetKey;
+    delete ayetNotlari[key];
     localStorage.setItem('ayet_notlari', JSON.stringify(ayetNotlari));
     kapatNotModal();
-    renderAyetler(mevcutAyetlerVerisi);
+    notButonunuGuncelle(key);
 }
 
 /* Sûre & Ayet Yükleme */
@@ -398,9 +406,7 @@ function renderAyetler(ayetler) {
 
         // Sticky Note Butonu
         const noteBtn = document.createElement('button');
-        noteBtn.className = 'ayet-note-trigger' + (hasNote ? ' has-note' : '');
-        noteBtn.title = hasNote ? 'Notu Görüntüle / Düzenle' : 'Bu Ayete Not Ekle';
-        noteBtn.innerHTML = hasNote ? NOTE_ICON_FILLED : NOTE_ICON_EMPTY;
+        notButonuDurumu(noteBtn, hasNote);
         noteBtn.onclick = (e) => {
             e.stopPropagation();
             acNotModal(ayet.sure_no, ayet.ayet_no);
@@ -422,15 +428,10 @@ function renderAyetler(ayetler) {
             const span = document.createElement('span');
             span.className = 'kelime-token' + (k.kok_id ? ' has-kok' : '');
             span.textContent = k.kelime_metni;
-
-            if (k.kok_id) {
-                span.addEventListener('mouseenter', () => gosterMufredat(k.kelime_id, span));
-                span.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    gosterMufredat(k.kelime_id, span);
-                });
-            }
+            // Dinleyici yok: hover/click #ayetler-container üzerinde tek noktadan (delegation) yönetilir
+            if (k.kok_id) span.dataset.kelimeId = k.kelime_id;
             arabicRow.appendChild(span);
+        arabicRow.appendChild(document.createTextNode(' ')); // iki yana yaslama için kelime boşluğu
         });
 
         const numBadge = document.createElement('span');
@@ -442,64 +443,224 @@ function renderAyetler(ayetler) {
         card.appendChild(arabicRow);
 
         // 3. Türkçe Mealler (Sadece Filtrelenen Mealler Arasında Gezinir)
-        const filtrelenmisMealler = (ayet.mealler || []).filter(m => 
-            aktifMealler.length === 0 || aktifMealler.includes(m.yazar_kodu)
-        );
+        const mealKutusu = mealKutusuOlustur(ayet);
+        if (mealKutusu) card.appendChild(mealKutusu);
 
-        if (filtrelenmisMealler.length > 0) {
-            let mealIndex = 0;
-            const mealDiv = document.createElement('div');
-            mealDiv.className = 'ayet-meal-box';
-
-            const guncelleMealIcerik = () => {
-                const m = filtrelenmisMealler[mealIndex];
-                mealDiv.innerHTML = `
-                    <div class="ayet-meal-sol" title="Mealleri seçmek ve filtrelemek için tıklayın">${m.yazar_adi}</div>
-                    <div class="ayet-meal-orta">${m.meal_metni}</div>
-                    <div class="ayet-meal-sag">
-                        ${filtrelenmisMealler.length > 1 ? `
-                            <button class="meal-nav-btn prev-m">‹</button>
-                            <span class="meal-sayac-inline">${mealIndex + 1}/${filtrelenmisMealler.length}</span>
-                            <button class="meal-nav-btn next-m">›</button>
-                        ` : ''}
-                    </div>
-                `;
-
-                const solYazarEl = mealDiv.querySelector('.ayet-meal-sol');
-                solYazarEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    acMealSeciciModal();
-                });
-
-                if (filtrelenmisMealler.length > 1) {
-                    mealDiv.querySelector('.prev-m').onclick = (e) => {
-                        e.stopPropagation();
-                        mealIndex = (mealIndex - 1 + filtrelenmisMealler.length) % filtrelenmisMealler.length;
-                        guncelleMealIcerik();
-                    };
-                    mealDiv.querySelector('.next-m').onclick = (e) => {
-                        e.stopPropagation();
-                        mealIndex = (mealIndex + 1) % filtrelenmisMealler.length;
-                        guncelleMealIcerik();
-                    };
-                }
-            };
-
-            guncelleMealIcerik();
-            card.appendChild(mealDiv);
-        } else if (ayet.mealler && ayet.mealler.length > 0) {
-            const bosUyari = document.createElement('div');
-            bosUyari.className = 'ayet-meal-box';
-            bosUyari.innerHTML = `<div class="ayet-meal-orta" style="color:var(--text-muted); font-size:13px; cursor:pointer;" onclick="acMealSeciciModal()">Seçili meal bulunmuyor. Mealleri seçmek için tıklayın.</div>`;
-            card.appendChild(bosUyari);
-        }
-
-        // 4. Çiçekli Ayraç
-        const dividerWrapper = document.createElement('div');
-        dividerWrapper.innerHTML = FLORAL_DIVIDER_HTML;
-        card.appendChild(dividerWrapper);
+        // 4. Çiçekli Ayraç (tek <use> referansı)
+        card.insertAdjacentHTML('beforeend', FLORAL_DIVIDER_HTML);
 
         container.appendChild(card);
+    });
+}
+
+// ---------- Meal yazı boyutu kaydırıcısı (tek, ortak popover) ----------
+let mealBoyutPopover = null;
+let mealBoyutDugme = null;
+let mealBoyutKapatZamanlayici = null;
+let mealBoyutSurukleniyor = false;
+
+function mealOlcegiUygula(deger, kaydet) {
+    mealOlcek = Math.min(MEAL_OLCEK_MAX, Math.max(MEAL_OLCEK_MIN, deger));
+    document.documentElement.style.setProperty('--meal-olcek', mealOlcek);
+    if (kaydet) {
+        try { localStorage.setItem('meal_olcek', String(mealOlcek)); } catch (e) { /* yoksay */ }
+    }
+}
+
+function mealBoyutKapatPlanla() {
+    clearTimeout(mealBoyutKapatZamanlayici);
+    mealBoyutKapatZamanlayici = setTimeout(() => {
+        if (!mealBoyutSurukleniyor) mealBoyutPopoverKapat();
+    }, 250);
+}
+
+function mealBoyutKapatIptal() {
+    clearTimeout(mealBoyutKapatZamanlayici);
+}
+
+function mealBoyutPopoverOlustur() {
+    const pop = document.createElement('div');
+    pop.className = 'meal-boyut-popover';
+    pop.innerHTML = `
+        <span class="boyut-a-kucuk">A</span>
+        <input type="range" min="${MEAL_OLCEK_MIN}" max="${MEAL_OLCEK_MAX}" step="0.05" aria-label="Meal yazı boyutu">
+        <span class="boyut-a-buyuk">A</span>
+        <span class="boyut-yuzde" title="Varsayılana döndür"></span>`;
+    document.body.appendChild(pop);
+
+    const slider = pop.querySelector('input');
+    const yuzde = pop.querySelector('.boyut-yuzde');
+    const guncelleYuzde = () => { yuzde.textContent = Math.round(mealOlcek * 100) + '%'; };
+
+    slider.addEventListener('input', () => {
+        mealOlcegiUygula(parseFloat(slider.value), true);
+        guncelleYuzde();
+    });
+    yuzde.addEventListener('click', () => {
+        mealOlcegiUygula(1, true);
+        slider.value = 1;
+        guncelleYuzde();
+    });
+
+    // Fare popover üzerindeyken açık kalır; ayrılınca kısa gecikmeyle kapanır
+    pop.addEventListener('pointerenter', mealBoyutKapatIptal);
+    pop.addEventListener('pointerleave', mealBoyutKapatPlanla);
+
+    // Kaydırıcıyı sürüklerken fare popover dışına çıksa da kapanmasın
+    slider.addEventListener('pointerdown', () => { mealBoyutSurukleniyor = true; });
+    document.addEventListener('pointerup', () => {
+        if (!mealBoyutSurukleniyor) return;
+        mealBoyutSurukleniyor = false;
+        if (!pop.matches(':hover')) mealBoyutKapatPlanla();
+    });
+
+    pop._guncelle = () => { slider.value = mealOlcek; guncelleYuzde(); };
+    return pop;
+}
+
+// x, y verilirse (fare) popover imlecin tam altında ortalanır; verilmezse düğmenin çevresinde açılır
+function mealBoyutPopoverAc(dugme, x, y) {
+    if (!mealBoyutPopover) mealBoyutPopover = mealBoyutPopoverOlustur();
+    mealBoyutKapatIptal();
+    mealBoyutDugme = dugme;
+    mealBoyutPopover._guncelle();
+    mealBoyutPopover.classList.add('acik');
+
+    const r = dugme.getBoundingClientRect();
+    const cx = (x !== undefined) ? x : r.left + r.width / 2;
+    const cy = (y !== undefined) ? y : r.bottom + mealBoyutPopover.offsetHeight / 2 + 8;
+    const pw = mealBoyutPopover.offsetWidth;
+    const ph = mealBoyutPopover.offsetHeight;
+    const left = Math.min(Math.max(8, cx - pw / 2), window.innerWidth - pw - 8);
+    const top = Math.min(Math.max(8, cy - ph / 2), window.innerHeight - ph - 8);
+    mealBoyutPopover.style.left = left + 'px';
+    mealBoyutPopover.style.top = top + 'px';
+}
+
+function mealBoyutPopoverKapat() {
+    mealBoyutKapatIptal();
+    if (mealBoyutPopover) mealBoyutPopover.classList.remove('acik');
+    mealBoyutDugme = null;
+}
+
+function mealBoyutAcikMi() {
+    return mealBoyutPopover && mealBoyutPopover.classList.contains('acik');
+}
+
+// Dışarı tıklama: kapat (büyüteç düğmesinin kendi tıklaması ayrıca işlenir)
+document.addEventListener('pointerdown', (e) => {
+    if (!mealBoyutAcikMi() || mealBoyutPopover.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.meal-zoom-btn')) return;
+    mealBoyutPopoverKapat();
+});
+// Sayfa kayarken popover yerinde kalmasın
+const mealBoyutKaydirmaKapat = (e) => {
+    if (!mealBoyutAcikMi() || mealBoyutPopover.contains(e.target)) return;
+    mealBoyutPopoverKapat();
+};
+document.addEventListener('wheel', mealBoyutKaydirmaKapat, { passive: true, capture: true });
+document.addEventListener('touchmove', mealBoyutKaydirmaKapat, { passive: true, capture: true });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') mealBoyutPopoverKapat(); });
+window.addEventListener('resize', mealBoyutPopoverKapat);
+
+// Bir ayetin meal kutusunu (aktif meallere göre) oluşturur; gösterilecek bir şey yoksa null döner
+function mealKutusuOlustur(ayet) {
+    const filtrelenmisMealler = (ayet.mealler || []).filter(m =>
+        aktifMealler.length === 0 || aktifMealler.includes(m.yazar_kodu)
+    );
+
+    if (filtrelenmisMealler.length > 0) {
+        let mealIndex = 0;
+        const mealDiv = document.createElement('div');
+        mealDiv.className = 'ayet-meal-box';
+
+        const guncelleMealIcerik = () => {
+            const m = filtrelenmisMealler[mealIndex];
+            mealDiv.innerHTML = `
+                <div class="ayet-meal-sol" title="Mealleri seçmek ve filtrelemek için tıklayın">${m.yazar_adi}</div>
+                <div class="ayet-meal-orta">${m.meal_metni}</div>
+                <div class="ayet-meal-sag">
+                    <button class="meal-nav-btn meal-zoom-btn" title="Meal yazı boyutu" aria-label="Meal yazı boyutu">${MEAL_ZOOM_ICON}</button>
+                    ${filtrelenmisMealler.length > 1 ? `
+                        <button class="meal-nav-btn prev-m">‹</button>
+                        <span class="meal-sayac-inline">${mealIndex + 1}/${filtrelenmisMealler.length}</span>
+                        <button class="meal-nav-btn next-m">›</button>
+                    ` : ''}
+                </div>
+            `;
+
+            const solYazarEl = mealDiv.querySelector('.ayet-meal-sol');
+            solYazarEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                acMealSeciciModal();
+            });
+
+            const zoomBtn = mealDiv.querySelector('.meal-zoom-btn');
+            // Fare: üzerine gelince açılır (kaydırıcı imlecin altında belirir)
+            zoomBtn.addEventListener('pointerenter', (e) => {
+                if (e.pointerType !== 'mouse') return;
+                mealBoyutKapatIptal();
+                if (mealBoyutDugme !== zoomBtn) mealBoyutPopoverAc(zoomBtn, e.clientX, e.clientY);
+            });
+            zoomBtn.addEventListener('pointerleave', (e) => {
+                if (e.pointerType === 'mouse') mealBoyutKapatPlanla();
+            });
+            // Dokunmatik / klavye: tıklayınca aç-kapat
+            zoomBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (mealBoyutDugme === zoomBtn && mealBoyutPopover.classList.contains('acik')) {
+                    mealBoyutPopoverKapat();
+                } else {
+                    mealBoyutPopoverAc(zoomBtn);
+                }
+            });
+
+            if (filtrelenmisMealler.length > 1) {
+                mealDiv.querySelector('.prev-m').onclick = (e) => {
+                    e.stopPropagation();
+                    mealIndex = (mealIndex - 1 + filtrelenmisMealler.length) % filtrelenmisMealler.length;
+                    guncelleMealIcerik();
+                };
+                mealDiv.querySelector('.next-m').onclick = (e) => {
+                    e.stopPropagation();
+                    mealIndex = (mealIndex + 1) % filtrelenmisMealler.length;
+                    guncelleMealIcerik();
+                };
+            }
+        };
+
+        guncelleMealIcerik();
+        return mealDiv;
+    }
+
+    if (ayet.mealler && ayet.mealler.length > 0) {
+        const bosUyari = document.createElement('div');
+        bosUyari.className = 'ayet-meal-box';
+        bosUyari.innerHTML = `<div class="ayet-meal-orta" style="color:var(--text-muted); font-size:13px; cursor:pointer;" onclick="acMealSeciciModal()">Seçili meal bulunmuyor. Mealleri seçmek için tıklayın.</div>`;
+        return bosUyari;
+    }
+
+    return null;
+}
+
+// Meal seçimi değişince tüm listeyi yeniden kurmak yerine yalnızca meal kutularını değiştirir
+// (kartlar, IntersectionObserver ve kaydırma konumu korunur)
+function mealKutulariniYenile() {
+    mevcutAyetlerVerisi.forEach(ayet => {
+        const card = document.getElementById(`ayet-${ayet.ayet_no}`);
+        if (!card) return;
+        const eski = card.querySelector(':scope > .ayet-meal-box');
+        const yeni = mealKutusuOlustur(ayet);
+        if (eski && yeni) eski.replaceWith(yeni);
+        else if (eski) eski.remove();
+        else if (yeni) card.insertBefore(yeni, card.querySelector(':scope > .ayet-floral-divider'));
+    });
+    document.querySelectorAll('#kok-modal-body .kok-ayet-card').forEach(card => {
+        const eski = card.querySelector(':scope > .ayet-meal-box');
+        const yeni = mealKutusuOlustur(card._ayet);
+        if (eski && yeni) eski.replaceWith(yeni);
+        else if (eski) eski.remove();
+        else if (yeni) card.insertBefore(yeni, card.querySelector(':scope > .ayet-floral-divider'));
     });
 }
 
@@ -535,25 +696,44 @@ function setupIntersectionObserver() {
     ayetCards.forEach(card => observer.observe(card));
 }
 
+const bekleyenKelimeIstekleri = {};
+let sonIstenenKelimeId = null;
+
+// Aynı kelime için aynı anda yalnızca tek istek atılır; sonuç cache'e yazılır
+function kelimeGetir(kelimeId) {
+    if (cache[kelimeId]) return Promise.resolve(cache[kelimeId]);
+    if (!bekleyenKelimeIstekleri[kelimeId]) {
+        bekleyenKelimeIstekleri[kelimeId] = fetch(`/kelime/${kelimeId}`)
+            .then(res => {
+                if (!res.ok) throw new Error('İstek başarısız');
+                return res.json();
+            })
+            .then(veri => (cache[kelimeId] = veri))
+            .finally(() => { delete bekleyenKelimeIstekleri[kelimeId]; });
+    }
+    return bekleyenKelimeIstekleri[kelimeId];
+}
+
 async function gosterMufredat(kelimeId, element) {
+    sonIstenenKelimeId = kelimeId;
     document.querySelectorAll('.kelime-token.selected').forEach(el => el.classList.remove('selected'));
     element.classList.add('selected');
 
     const titleEl = document.getElementById('mufredat-title');
     const descEl = document.getElementById('mufredat-desc');
 
-    if (!cache[kelimeId]) {
-        try {
-            const res = await fetch(`/kelime/${kelimeId}`);
-            cache[kelimeId] = await res.json();
-        } catch (err) {
-            titleEl.textContent = 'Hata';
-            descEl.innerHTML = '<span style="color:red;">Kök açıklaması alınamadı.</span>';
-            return;
-        }
+    let data;
+    try {
+        data = await kelimeGetir(kelimeId);
+    } catch (err) {
+        if (sonIstenenKelimeId !== kelimeId) return;
+        titleEl.textContent = 'Hata';
+        descEl.innerHTML = '<span style="color:red;">Kök açıklaması alınamadı.</span>';
+        return;
     }
 
-    const data = cache[kelimeId];
+    // Yanıt beklenirken fare başka kelimeye geçtiyse eski yanıtı gösterme
+    if (sonIstenenKelimeId !== kelimeId) return;
     if (data.kok) {
         titleEl.innerHTML = `<span>${data.kok.baslik || 'Kök Bilgisi'}</span><span class="kok-ipucu">Geçtiği ayetler ›</span>`;
         titleEl.classList.add('tiklanabilir');
@@ -572,9 +752,6 @@ document.getElementById('mufredat-title').addEventListener('click', (e) => {
     if (kokId) gosterKokAyetleri(kokId, 0);
 });
 
-let onizlemeOncesiBaslik = '';
-let onizlemeOncesiAciklama = '';
-
 function renderAyetHtmlVurgulu(ayetMetni, vurguluKelimeler) {
     const tokens = ayetMetni.split(/\s+/);
     const vurguSeti = new Set(vurguluKelimeler || []);
@@ -586,28 +763,48 @@ function renderAyetHtmlVurgulu(ayetMetni, vurguluKelimeler) {
     }).join(' ');
 }
 
-function olusturOnizlemeHtml(item, mealIdx) {
-    const sureAdi = item.sure_adi ? `${item.sure_no}. ${item.sure_adi}` : `${item.sure_no}. Sûre`;
-    const vurguluHtml = renderAyetHtmlVurgulu(item.ayet_metni, item.vurgulu_kelimeler);
-    let html = `<div class="arabic-row" style="font-size:24px; line-height:2.2; justify-content:center;">${vurguluHtml}</div>`;
+// Kök penceresindeki bir ayeti, ana paneldeki ayet kartıyla aynı yapıda üretir
+function kokAyetKartiOlustur(item) {
+    const card = document.createElement('div');
+    card.className = 'ayet-card kok-ayet-card';
+    card._ayet = item; // meal seçimi değişince yeniden çizmek için
 
-    if (item.mealler && item.mealler.length > 0) {
-        const m = item.mealler[mealIdx];
-        html += `
-            <div class="ayet-meal-box" style="margin-top:14px;">
-                <div class="ayet-meal-sol">${m.yazar_adi}</div>
-                <div class="ayet-meal-orta">${m.meal_metni}</div>
-                <div class="ayet-meal-sag">
-                    ${item.mealler.length > 1 ? `
-                        <button class="meal-nav-btn prev-onizleme">‹</button>
-                        <span class="meal-sayac-inline">${mealIdx + 1}/${item.mealler.length}</span>
-                        <button class="meal-nav-btn next-onizleme">›</button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
+    const sureAdi = item.sure_adi ? `${item.sure_no}. ${item.sure_adi}` : `${item.sure_no}. Sûre`;
+    const title = document.createElement('div');
+    title.className = 'ayet-title';
+    title.textContent = `${sureAdi}, ${item.ayet_no}. Ayet`;
+    if (item.adet > 1) {
+        const adet = document.createElement('span');
+        adet.className = 'adet-badge';
+        adet.textContent = `${item.adet} kez`;
+        title.appendChild(adet);
     }
-    return html;
+
+    const arabicRow = document.createElement('div');
+    arabicRow.className = 'arabic-row';
+    const vurguSeti = new Set(item.vurgulu_kelimeler || []);
+    item.ayet_metni.split(/\s+/).filter(Boolean).forEach(tok => {
+        const span = document.createElement('span');
+        span.className = 'kelime-token' + (vurguSeti.has(tok) ? ' kok-eslesen' : '');
+        span.textContent = tok;
+        arabicRow.appendChild(span);
+        arabicRow.appendChild(document.createTextNode(' ')); // iki yana yaslama için kelime boşluğu
+    });
+    const numBadge = document.createElement('span');
+    numBadge.className = 'ayet-num-badge';
+    numBadge.textContent = item.ayet_no;
+    arabicRow.appendChild(numBadge);
+
+    card.appendChild(title);
+    card.appendChild(arabicRow);
+
+    const mealKutusu = mealKutusuOlustur(item);
+    if (mealKutusu) card.appendChild(mealKutusu);
+    card.insertAdjacentHTML('beforeend', FLORAL_DIVIDER_HTML);
+
+    // Karta tıklayınca ayete git (meal kutusundaki düğmeler stopPropagation yapar)
+    card.addEventListener('click', () => kokAyetineGit(item.sure_no, item.ayet_no));
+    return card;
 }
 
 async function gosterKokAyetleri(kokId, offsetParam) {
@@ -615,12 +812,8 @@ async function gosterKokAyetleri(kokId, offsetParam) {
     const body = document.getElementById('kok-modal-body');
     const baslikEl = document.getElementById('kok-modal-baslik');
     const titleEl = document.getElementById('mufredat-title');
-    const descEl = document.getElementById('mufredat-desc');
 
     if (offsetParam === 0) {
-        onizlemeOncesiBaslik = titleEl.innerHTML;
-        onizlemeOncesiAciklama = descEl.innerHTML;
-
         const kokAdi = titleEl.querySelector('span') ? titleEl.querySelector('span').textContent : 'Kök';
         baslikEl.textContent = `${kokAdi} — geçtiği ayetler`;
         backdrop.classList.add('acik');
@@ -644,97 +837,7 @@ async function gosterKokAyetleri(kokId, offsetParam) {
         }
 
         veri.ayetler.forEach(item => {
-            const row = document.createElement('div');
-            row.className = 'kok-ayet-item';
-
-            const sureAdi = item.sure_adi ? `${item.sure_no}. ${item.sure_adi}` : `${item.sure_no}. Sûre`;
-            const vurguluHtml = renderAyetHtmlVurgulu(item.ayet_metni, item.vurgulu_kelimeler);
-
-            const ust = document.createElement('div');
-            ust.className = 'kok-ayet-ust';
-            ust.innerHTML = `<span class="kok-ayet-badge">${sureAdi}, ${item.ayet_no}. Ayet</span>` +
-                (item.adet > 1 ? `<span class="adet-badge">${item.adet} kez</span>` : '');
-
-            const metin = document.createElement('div');
-            metin.className = 'kok-ayet-metin';
-            metin.innerHTML = vurguluHtml;
-
-            row.appendChild(ust);
-            row.appendChild(metin);
-
-            let modalMealIndex = 0;
-            if (item.mealler && item.mealler.length > 0) {
-                const mealDiv = document.createElement('div');
-                mealDiv.className = 'ayet-meal-box';
-                mealDiv.style.marginTop = '6px';
-                mealDiv.style.padding = '8px 12px';
-
-                const guncelleModalMeal = () => {
-                    const m = item.mealler[modalMealIndex];
-                    mealDiv.innerHTML = `
-                        <div class="ayet-meal-sol" style="font-size:10px;">${m.yazar_adi}</div>
-                        <div class="ayet-meal-orta" style="font-size:13px;">${m.meal_metni}</div>
-                        <div class="ayet-meal-sag">
-                            ${item.mealler.length > 1 ? `
-                                <button class="meal-nav-btn m-prev">‹</button>
-                                <span class="meal-sayac-inline">${modalMealIndex + 1}/${item.mealler.length}</span>
-                                <button class="meal-nav-btn m-next">›</button>
-                            ` : ''}
-                        </div>
-                    `;
-
-                    if (item.mealler.length > 1) {
-                        mealDiv.querySelector('.m-prev').onclick = (e) => {
-                            e.stopPropagation();
-                            modalMealIndex = (modalMealIndex - 1 + item.mealler.length) % item.mealler.length;
-                            guncelleModalMeal();
-                            guncelleOnizleme(modalMealIndex);
-                        };
-                        mealDiv.querySelector('.m-next').onclick = (e) => {
-                            e.stopPropagation();
-                            modalMealIndex = (modalMealIndex + 1) % item.mealler.length;
-                            guncelleModalMeal();
-                            guncelleOnizleme(modalMealIndex);
-                        };
-                    }
-                };
-
-                guncelleModalMeal();
-                row.appendChild(mealDiv);
-            }
-
-            const guncelleOnizleme = (idx) => {
-                titleEl.innerHTML = `<span>${sureAdi}, ${item.ayet_no}. Ayet</span><span class="kok-ipucu">‹ kök açıklaması</span>`;
-                titleEl.classList.remove('tiklanabilir');
-                descEl.innerHTML = olusturOnizlemeHtml(item, idx);
-
-                if (item.mealler && item.mealler.length > 1) {
-                    const prevBtn = descEl.querySelector('.prev-onizleme');
-                    const nextBtn = descEl.querySelector('.next-onizleme');
-                    if (prevBtn && nextBtn) {
-                        prevBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            modalMealIndex = (modalMealIndex - 1 + item.mealler.length) % item.mealler.length;
-                            guncelleOnizleme(modalMealIndex);
-                        };
-                        nextBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            modalMealIndex = (modalMealIndex + 1) % item.mealler.length;
-                            guncelleOnizleme(modalMealIndex);
-                        };
-                    }
-                }
-            };
-
-            row.addEventListener('mouseenter', () => guncelleOnizleme(modalMealIndex));
-            row.addEventListener('mouseleave', () => {
-                titleEl.innerHTML = onizlemeOncesiBaslik;
-                titleEl.classList.add('tiklanabilir');
-                descEl.innerHTML = onizlemeOncesiAciklama;
-            });
-
-            row.addEventListener('click', () => kokAyetineGit(item.sure_no, item.ayet_no));
-            body.appendChild(row);
+            body.appendChild(kokAyetKartiOlustur(item));
         });
 
         if (veri.offset + veri.ayetler.length < veri.toplam) {
@@ -751,11 +854,6 @@ async function gosterKokAyetleri(kokId, offsetParam) {
 
 function kapatKokModal() {
     document.getElementById('kok-modal-backdrop').classList.remove('acik');
-    if (onizlemeOncesiBaslik) {
-        document.getElementById('mufredat-title').innerHTML = onizlemeOncesiBaslik;
-        document.getElementById('mufredat-title').classList.add('tiklanabilir');
-        document.getElementById('mufredat-desc').innerHTML = onizlemeOncesiAciklama;
-    }
 }
 
 function vurgulaVeGit(ayetNo) {
@@ -776,6 +874,33 @@ async function kokAyetineGit(sureNo, ayetNo) {
     kapatKokModal();
     sureVeAyeteGit(sureNo, ayetNo);
 }
+
+// Kelime hover/click: her kelimeye ayrı dinleyici yerine kapsayıcıda tek dinleyici
+const ayetlerKapsayici = document.getElementById('ayetler-container');
+let kelimeHoverTimer = null;
+
+function kokTokenBul(target) {
+    return target.closest ? target.closest('.kelime-token.has-kok') : null;
+}
+
+ayetlerKapsayici.addEventListener('mouseover', (e) => {
+    const el = kokTokenBul(e.target);
+    if (!el) return;
+    clearTimeout(kelimeHoverTimer);
+    // Fare kelimelerin üzerinden hızlıca geçerken istek atma (150 ms bekle)
+    kelimeHoverTimer = setTimeout(() => gosterMufredat(Number(el.dataset.kelimeId), el), 150);
+});
+
+ayetlerKapsayici.addEventListener('mouseout', (e) => {
+    if (kokTokenBul(e.target)) clearTimeout(kelimeHoverTimer);
+});
+
+ayetlerKapsayici.addEventListener('click', (e) => {
+    const el = kokTokenBul(e.target);
+    if (!el) return;
+    clearTimeout(kelimeHoverTimer);
+    gosterMufredat(Number(el.dataset.kelimeId), el);
+});
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

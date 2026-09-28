@@ -1,4 +1,10 @@
 :root {
+    /* Arapça ayet metni: yazı tipi ve renk buradan değişir.
+       Mushaf görünümü için KFGQPC "Uthmanic Script HAFS" dosyasını /static/fonts/ altına koyup
+       dosyanın sonundaki yorum satırındaki @font-face bloğunu açın ve o adı listenin başına ekleyin. */
+    --arapca-font: 'Scheherazade New', 'Amiri', serif;
+    --arapca-renk: #14294a;
+    --meal-olcek: 1; /* Türkçe meal yazı boyutu çarpanı (büyüteç kaydırıcısı) */
     --primary: #b58941;
     --primary-light: #fef3c7;
     --border: #e5e7eb;
@@ -263,7 +269,7 @@ main {
     padding: 4px;
     border-radius: 6px;
     color: #9ca3af;
-    opacity: 0;
+    opacity: 1;
     transition: all 0.2s ease;
 }
 
@@ -297,14 +303,19 @@ main {
 
 .arabic-row {
     direction: rtl;
-    font-family: 'Amiri', serif;
+    font-family: var(--arapca-font);
     font-size: 32px;
-    line-height: 2.2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1px;
+    font-weight: 500;
+    line-height: 1.9;
+    word-spacing: -0.22em; /* kelimeler bir metin gibi birbirine yakın dursun */
+    color: var(--arapca-renk);
+    /* Mushaf gibi iki yana yaslı satırlar; son satır ortada */
+    display: block;
+    text-align: justify;
+    text-align-last: center;
+    text-justify: inter-word;
+    font-feature-settings: "liga", "calt", "mark", "mkmk";
+    text-rendering: optimizeLegibility;
 }
 
 .ayet-num-badge {
@@ -326,7 +337,7 @@ main {
 .kelime-token {
     position: relative;
     cursor: default;
-    padding: 2px 3px;
+    padding: 0 1px;
     border-radius: 6px;
     transition: all 0.15s ease;
     -webkit-tap-highlight-color: transparent;
@@ -353,7 +364,7 @@ main {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    font-size: 15px;
+    font-size: calc(15px * var(--meal-olcek));
     line-height: 1.6;
     color: #4b5563;
 }
@@ -498,8 +509,7 @@ main {
 /* Modal Stilleri */
 .sure-secici-backdrop,
 .meal-secici-backdrop,
-.not-modal-backdrop,
-.kok-modal-backdrop {
+.not-modal-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(17, 24, 39, 0.45);
@@ -512,15 +522,13 @@ main {
 
 .sure-secici-backdrop.acik,
 .meal-secici-backdrop.acik,
-.not-modal-backdrop.acik,
-.kok-modal-backdrop.acik {
+.not-modal-backdrop.acik {
     display: flex;
 }
 
 .sure-secici-modal,
 .meal-secici-modal,
-.not-modal,
-.kok-modal {
+.not-modal {
     background: #ffffff;
     border-radius: 12px;
     width: 100%;
@@ -534,8 +542,7 @@ main {
 
 .sure-secici-header,
 .meal-secici-header,
-.not-modal-header,
-.kok-modal-header {
+.not-modal-header {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -560,8 +567,7 @@ main {
 }
 
 .sure-secici-liste,
-.meal-secici-liste,
-.kok-modal-body {
+.meal-secici-liste {
     overflow-y: auto;
     padding: 8px;
     display: flex;
@@ -588,7 +594,21 @@ main {
 }
 
 /* Meal Seçici Filtre */
+/* Filtre satırı + liste tek kaydırma alanında (kaydırma çubuğu her ikisini eşit daraltır) */
+.meal-secici-govde {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.meal-secici-govde .meal-secici-liste {
+    overflow: visible;
+}
+
 .meal-filtre-kontrol {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     padding: 10px 18px;
     background: #f3f4f6;
     border-bottom: 1px solid var(--border);
@@ -601,14 +621,17 @@ main {
 .meal-filtre-kontrol label {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
+    width: 100%;
     cursor: pointer;
 }
 
 .meal-secici-row {
     display: flex;
     align-items: center;
-    padding: 8px 14px;
+    justify-content: space-between;
+    padding: 9px 10px;
     border-radius: 6px;
     font-size: 13.5px;
     gap: 10px;
@@ -620,7 +643,15 @@ main {
     background: #f9fafb;
 }
 
-.meal-secici-row input[type="checkbox"] {
+.meal-secici-row span,
+.meal-filtre-kontrol label span {
+    flex: 1;
+    text-align: left;
+}
+
+.meal-secici-row input[type="checkbox"],
+.meal-filtre-kontrol input[type="checkbox"] {
+    flex-shrink: 0;
     cursor: pointer;
     accent-color: var(--primary);
     width: 16px;
@@ -714,6 +745,98 @@ main {
     background: #fee2e2;
 }
 
+/* Kök Ayetleri Paneli: masaüstünde ayetler panelinin tam üstüne biner (main içinde konumlanır),
+   mobilde tüm ekranı kaplar */
+.kok-modal-backdrop {
+    display: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 58%;
+    z-index: 50;
+    background: #ffffff;
+    border-right: 1px solid var(--border);
+}
+
+.kok-modal-backdrop.acik {
+    display: flex;
+}
+
+.kok-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.kok-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #fbfbfb;
+    flex-shrink: 0;
+}
+
+.kok-modal-header h4 {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kok-modal-header .kok-modal-kapat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    font-size: 26px;
+    border-radius: 8px;
+    color: var(--text-dark);
+}
+
+.kok-modal-header .kok-modal-kapat:hover {
+    background: #f3f4f6;
+}
+
+.kok-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 36px;
+}
+
+/* Kök penceresindeki kartlar ana ayet kartlarıyla aynı; yalnızca tıklanabilir */
+.kok-ayet-card {
+    cursor: pointer;
+}
+
+.kok-ayet-card:hover {
+    background-color: #fafaf9;
+}
+
+/* Köke ait kelime: ana paneldeki seçili kelime stiliyle aynı */
+.kelime-token.kok-eslesen {
+    background-color: var(--primary-light);
+    color: #92400e;
+}
+
+.ayet-title .adet-badge {
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: 500;
+}
+
 .kok-modal-kapat {
     background: none;
     border: none;
@@ -724,51 +847,12 @@ main {
     padding: 4px;
 }
 
-.kok-ayet-item {
-    padding: 12px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-    transition: background 0.15s;
-}
-
-.kok-ayet-item:last-child {
-    border-bottom: none;
-}
-
-.kok-ayet-item:hover {
-    background: #f8fafc;
-}
-
-.kok-ayet-ust {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.kok-ayet-badge {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--primary);
-}
-
 .adet-badge {
     font-size: 11px;
     color: var(--text-muted);
     background: #f3f4f6;
     border-radius: 999px;
     padding: 2px 8px;
-}
-
-.kok-ayet-metin {
-    font-family: 'Amiri', serif;
-    font-size: 19px;
-    line-height: 1.8;
-    direction: rtl;
-    text-align: right;
-    color: #374151;
-    margin-bottom: 6px;
 }
 
 .kok-daha-fazla {
@@ -876,9 +960,8 @@ footer {
     }
 
     .arabic-row {
-        font-size: 26px;
-        line-height: 2.1;
-        gap: 1px;
+        font-size: 27px;
+        line-height: 1.95;
     }
 
     .ayet-meal-box {
@@ -886,9 +969,29 @@ footer {
         align-items: center;
         gap: 8px;
         text-align: center;
+        font-size: calc(18px * var(--meal-olcek));
+        line-height: 1.65;
     }
     .ayet-meal-sol, .ayet-meal-sag {
         align-self: center;
+    }
+    .ayet-meal-sol {
+        font-size: 12px;
+    }
+
+    /* Kök ayetleri paneli: mobilde tüm ekran */
+    .kok-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        z-index: 2100;
+        border-right: none;
+    }
+    .kok-modal-header {
+        padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    }
+    .kok-modal-body {
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
     }
 
     .panel-mufredat {
@@ -917,4 +1020,74 @@ footer {
         height: 80px;
         font-size: 10px;
     }
+}
+
+/* İsteğe bağlı: Kuran mushafı yazı tipi (dosyayı /static/fonts/ altına koyun)
+@font-face {
+    font-family: 'Uthmani Hafs';
+    src: url('/static/fonts/UthmanicHafs.woff2') format('woff2');
+    font-display: swap;
+}
+*/
+
+/* Meal yazı boyutu: büyüteç düğmesi ve kaydırıcı */
+.meal-zoom-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+}
+
+.meal-zoom-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+.meal-boyut-popover {
+    position: fixed;
+    z-index: 2200;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    width: 250px;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.meal-boyut-popover.acik {
+    display: flex;
+}
+
+.meal-boyut-popover .boyut-a-kucuk,
+.meal-boyut-popover .boyut-a-buyuk {
+    font-weight: 600;
+    color: var(--text-muted);
+    user-select: none;
+    line-height: 1;
+}
+
+.meal-boyut-popover .boyut-a-kucuk { font-size: 12px; }
+.meal-boyut-popover .boyut-a-buyuk { font-size: 20px; }
+
+.meal-boyut-popover input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.meal-boyut-popover .boyut-yuzde {
+    min-width: 38px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.meal-boyut-popover .boyut-yuzde:hover {
+    color: var(--primary);
 }

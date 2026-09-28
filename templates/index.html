@@ -4,10 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kur'an-ı Kerim & Müfredat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+
+    <!-- Çiçekli ayraç şekli: bir kez tanımlanır, her ayet <use> ile referans verir -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <symbol id="floral" viewBox="0 0 600 50">
+                <line x1="20" y1="25" x2="190" y2="25" stroke="#1f2937" stroke-width="1.2" />
+                <path d="M 195 25 Q 235 5 280 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
+                <path d="M 215 17 Q 210 9 220 12 C 228 15 220 22 215 17 Z" fill="#2b2b2b" />
+                <path d="M 245 13 Q 248 5 256 9 C 260 14 252 20 245 13 Z" fill="#2b2b2b" />
+                <g transform="translate(250, 27) scale(0.65)">
+                    <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                    <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                </g>
+                <path d="M 270 12 C 270 34, 330 34, 330 12" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                <g transform="translate(300, 10) scale(0.7)">
+                    <path d="M 0 0 C -12 -18, 12 -18, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                    <path d="M -5 -4 C -22 -10, -15 -25, -2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    <path d="M 5 -4 C 22 -10, 15 -25, 2 -14" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                </g>
+                <path d="M 320 25 Q 365 5 405 25" fill="none" stroke="#1f2937" stroke-width="1.3" />
+                <path d="M 355 13 Q 352 5 344 9 C 340 14 348 20 355 13 Z" fill="#2b2b2b" />
+                <path d="M 385 17 Q 390 9 380 12 C 372 15 380 22 385 17 Z" fill="#2b2b2b" />
+                <g transform="translate(350, 27) scale(0.65)">
+                    <path d="M 0 0 C -10 15, -15 25, 0 35 C 15 25, 10 15, 0 0 Z" fill="none" stroke="#1f2937" stroke-width="1.8" />
+                    <path d="M -5 12 C -18 10, -18 25, -2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                    <path d="M 5 12 C 18 10, 18 25, 2 22" fill="none" stroke="#1f2937" stroke-width="1.5" />
+                </g>
+                <line x1="410" y1="25" x2="580" y2="25" stroke="#1f2937" stroke-width="1.2" />
+        </symbol>
+    </svg>
 
     <!-- Header (Sûre Başlığı Sol Ayet Alanını Ortalar) -->
     <header>
@@ -49,6 +79,17 @@
             <div id="ayetler-container">Yükleniyor...</div>
         </section>
 
+        <!-- Kökün geçtiği ayetler: masaüstünde ayetler panelini kaplar, mobilde tüm ekran (sağ üstte X) -->
+        <div id="kok-modal-backdrop" class="kok-modal-backdrop" role="dialog" aria-labelledby="kok-modal-baslik">
+            <div class="kok-modal">
+                <div class="kok-modal-header">
+                    <h4 id="kok-modal-baslik">Kök</h4>
+                    <button class="kok-modal-kapat" onclick="kapatKokModal()" aria-label="Kapat">&times;</button>
+                </div>
+                <div id="kok-modal-body" class="kok-modal-body"></div>
+            </div>
+        </div>
+
         <!-- SAĞ/ALT PANEL: Müfredat -->
         <section class="panel-mufredat" id="panel-mufredat">
             <div class="mufredat-card">
@@ -81,13 +122,16 @@
                 <span style="font-weight:700; font-size:15px;">Görüntülenecek Mealleri Seçin</span>
                 <button class="kok-modal-kapat" onclick="kapatMealSeciciModal()">&times;</button>
             </div>
-            <div class="meal-filtre-kontrol">
-                <label>
-                    <input type="checkbox" id="hepsini-sec-checkbox" onchange="toggleTumMealler(this.checked)">
-                    <span id="hepsini-sec-label">Tümünü Seç / Kaldır</span>
-                </label>
+            <!-- Tümünü seç satırı ve liste aynı kaydırma alanında: kaydırma çubuğu ikisini de aynı miktarda daraltır, kutular hizalı kalır -->
+            <div class="meal-secici-govde">
+                <div class="meal-filtre-kontrol">
+                    <label>
+                        <span id="hepsini-sec-label">Tümünü Seç / Kaldır</span>
+                        <input type="checkbox" id="hepsini-sec-checkbox" onchange="toggleTumMealler(this.checked)">
+                    </label>
+                </div>
+                <div id="meal-secici-liste" class="meal-secici-liste"></div>
             </div>
-            <div id="meal-secici-liste" class="meal-secici-liste"></div>
             <div class="meal-secici-footer">
                 <button class="btn-primary-mini" onclick="kapatMealSeciciModal()">Tamam</button>
             </div>
@@ -111,17 +155,6 @@
                     <button class="not-btn not-btn-kaydet" onclick="notuKaydet()">Kaydet</button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Kökün geçtiği sûreler modalı -->
-    <div id="kok-modal-backdrop" class="kok-modal-backdrop" onclick="if(event.target===this) kapatKokModal()">
-        <div class="kok-modal">
-            <div class="kok-modal-header">
-                <h4 id="kok-modal-baslik">Kök</h4>
-                <button class="kok-modal-kapat" onclick="kapatKokModal()" aria-label="Kapat">&times;</button>
-            </div>
-            <div id="kok-modal-body" class="kok-modal-body"></div>
         </div>
     </div>
 
